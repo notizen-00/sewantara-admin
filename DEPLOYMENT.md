@@ -1,8 +1,8 @@
 # Deployment VPS dengan Docker
 
-Panduan ini menggunakan Docker Compose dan Nginx sebagai reverse proxy. Port
-aplikasi hanya dibuka pada `127.0.0.1`, sehingga akses publik harus melewati
-Nginx.
+Panduan ini menggunakan Docker Compose dan Nginx atau Nginx Proxy Manager
+sebagai reverse proxy. Secara default port aplikasi di-bind ke `0.0.0.0`
+supaya dapat dijangkau reverse proxy yang berjalan di container lain.
 
 ## 1. Persiapan VPS
 
@@ -31,6 +31,7 @@ Isi URL API publik:
 
 ```dotenv
 NUXT_PUBLIC_API_BASE=https://api.domain-anda.com/api
+APP_BIND_ADDRESS=0.0.0.0
 APP_PORT=3005
 TZ=Asia/Jakarta
 ```
@@ -52,6 +53,52 @@ Tes dari VPS:
 ```bash
 curl -I http://127.0.0.1:3005
 ```
+
+## Nginx Proxy Manager
+
+Apabila Nginx Proxy Manager berjalan di container Docker, jangan gunakan
+`127.0.0.1` atau `localhost` sebagai Forward Hostname. Alamat tersebut menunjuk
+ke container Nginx Proxy Manager sendiri.
+
+Gunakan konfigurasi Proxy Host berikut:
+
+```text
+Scheme:           http
+Forward Hostname: IP private/LAN VPS
+Forward Port:     3005
+Websockets:       aktif
+Block Exploits:   aktif
+```
+
+Contoh Forward Hostname adalah `192.168.1.10` atau IP interface VPS yang dapat
+dijangkau container Nginx Proxy Manager. Untuk mengetahui alamat host yang
+terlihat dari jaringan Docker:
+
+```bash
+ip -4 addr show
+docker exec <container-npm> sh -c "wget -S -O- http://IP_VPS:3005/"
+```
+
+Setelah mengubah binding port, recreate container aplikasi:
+
+```bash
+docker compose --env-file .env.production up -d --force-recreate
+docker compose --env-file .env.production ps
+sudo ss -lntp | grep 3005
+```
+
+Output `ss` harus menunjukkan `0.0.0.0:3005`, bukan hanya
+`127.0.0.1:3005`.
+
+Jika UFW aktif dan Nginx Proxy Manager berada pada server lain, izinkan port
+3005 hanya dari IP server proxy:
+
+```bash
+sudo ufw allow from <IP_SERVER_NPM> to any port 3005 proto tcp
+```
+
+Jika Nginx Proxy Manager berada pada VPS yang sama, jangan membuka port 3005
+secara umum di firewall publik.
 
 ## 4. Konfigurasi Nginx
 
