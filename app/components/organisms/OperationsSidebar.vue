@@ -15,6 +15,7 @@ import {
   Settings,
   Tags,
   Users,
+  UserCog,
   Wrench,
   X,
 } from '@lucide/vue'
@@ -34,16 +35,24 @@ const emit = defineEmits<{
   toggleCollapse: []
 }>()
 
+const auth = useAuthStore()
 const tenantMenuOpen = ref(false)
+const canViewUsers = computed(() =>
+  auth.roles.some((role) =>
+    role.code === 'owner'
+    || (role.permissions || []).some((permission) => permission.code === 'user.view'),
+  ),
+)
 
 const navigationGroups = [
   {
     label: 'Workspace',
     items: [
-      { key: 'overview', label: 'Ringkasan', icon: LayoutDashboard },
+      { key: 'overview', label: 'Dashboard', icon: LayoutDashboard },
       { key: 'bookings', label: 'Booking', icon: BookOpenCheck },
       { key: 'calendar', label: 'Kalender', icon: CalendarDays },
       { key: 'customers', label: 'Pelanggan', icon: Users },
+      { key: 'users', label: 'Pengguna', icon: UserCog },
     ],
   },
   {
@@ -186,7 +195,7 @@ function toggleCollapse() {
         <p :class="['mb-2 px-2 text-xs font-semibold text-neutral-500', collapsed ? 'lg:hidden' : '']">{{ group.label }}</p>
         <div class="grid gap-1">
           <button
-            v-for="item in group.items"
+            v-for="item in group.items.filter((entry) => entry.key !== 'users' || canViewUsers)"
             :key="item.key"
             type="button"
             :title="collapsed ? item.label : undefined"

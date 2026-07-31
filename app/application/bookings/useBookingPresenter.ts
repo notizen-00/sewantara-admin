@@ -574,6 +574,22 @@ export function useBookingPresenter() {
     return (end - start) / 3_600_000
   }
 
+  function syncDailyRentalEnd() {
+    if (!form.start_at || !form.items.length) return
+
+    const isDailyRental = form.items.every((line) => {
+      const product = products.products.find((item) => item.id === line.product_id)
+      return product?.default_pricing_type === 'daily'
+    })
+    if (!isDailyRental) return
+
+    const end = new Date(form.start_at)
+    if (Number.isNaN(end.getTime())) return
+
+    end.setDate(end.getDate() + 1)
+    form.end_at = toLocalDateTimeInput(end)
+  }
+
   function estimatedProductCost(product: Product, quantity: number) {
     const rate = productRate(product)
     if (!rate) return null
@@ -732,6 +748,14 @@ export function useBookingPresenter() {
   watch(
     () => [form.start_at, form.end_at, JSON.stringify(form.items)],
     () => store.resetAvailability(),
+  )
+
+  watch(
+    () => [
+      form.start_at,
+      form.items.map((line) => line.product_id).join(','),
+    ],
+    syncDailyRentalEnd,
   )
 
   watch(contextKey, (nextContext, previousContext) => {

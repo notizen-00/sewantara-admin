@@ -1,5 +1,9 @@
 import { defineStore } from 'pinia'
-import type { RegisterPayload, RegisterResult, TenantSession } from '~/domain/mitra'
+import type {
+  RegisterPayload,
+  RegisterResult,
+  TenantSession,
+} from '~/domain/mitra'
 import { useAuthRepository } from '~/infrastructure/repositories/authRepository'
 
 const storageKeys = {
@@ -21,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => Boolean(accessToken.value && tenantId.value))
   const tenantStatus = computed(() => session.value?.tenant.status || 'onboarding')
+  const subscription = computed(() => session.value?.subscription || null)
   const roles = computed(() => session.value?.roles || session.value?.user.roles || [])
   const hasGlobalBranchAccess = computed(() =>
     roles.value.some((role) => role.code === 'owner' && role.pivot?.branch_id === null),
@@ -200,6 +205,7 @@ export const useAuthStore = defineStore('auth', () => {
     branchId,
     session,
     registeredTenant,
+    subscription,
     loading,
     tenantSwitching,
     branchSwitching,

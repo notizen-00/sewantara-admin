@@ -19,6 +19,7 @@ export function useMitraDashboard() {
   const products = useProductStore()
   const bookings = useBookingStore()
   const inventory = useInventoryStore()
+  const users = useUserStore()
 
   const activeAuthTab = ref<'login' | 'register'>('login')
   const successMessage = ref('')
@@ -105,6 +106,49 @@ export function useMitraDashboard() {
     return auth.registeredTenant?.tenant.name || 'Sewantara Mitra'
   })
   const tenantStatusLabel = computed(() => auth.session?.tenant.status || (auth.isAuthenticated ? 'onboarding' : 'guest'))
+  const subscriptionSummary = computed(() => {
+    const subscription = auth.subscription
+    const plan = subscription?.plan
+    const normalizedStatus = subscription?.status?.toLowerCase() || 'inactive'
+    const type = subscription?.is_on_trial || normalizedStatus === 'trial'
+      ? 'Trial'
+      : plan?.invoice_interval === 'year'
+        ? 'Tahunan'
+        : plan?.invoice_interval === 'month'
+          ? 'Bulanan'
+          : 'Belum tersedia'
+    const statusLabels: Record<string, string> = {
+      active: 'Aktif',
+      trial: 'Masa percobaan',
+      expired: 'Kedaluwarsa',
+      inactive: 'Tidak ada subscription',
+      canceled: 'Dibatalkan',
+    }
+    const endDate = subscription?.is_on_trial
+      ? subscription.trial_ends_at
+      : subscription?.ends_at
+    const intervalLabel = plan?.invoice_interval === 'year' ? 'tahun' : 'bulan'
+    const priceLabel = plan
+      ? `${formatMoney(Number(plan.price), plan.currency)} / ${plan.invoice_period > 1 ? `${plan.invoice_period} ` : ''}${intervalLabel}`
+      : 'Harga paket belum tersedia'
+
+    return {
+      planName: plan?.name || 'Belum berlangganan',
+      planSlug: plan?.slug || '',
+      type,
+      status: normalizedStatus,
+      statusLabel: statusLabels[normalizedStatus] || normalizedStatus.replace(/_/g, ' '),
+      tone: subscription?.is_active
+        ? 'success' as const
+        : ['expired', 'inactive', 'canceled'].includes(normalizedStatus)
+          ? 'danger' as const
+          : 'warning' as const,
+      validUntil: endDate ? formatDate(endDate) : 'Tidak ada tanggal berakhir',
+      priceLabel,
+      features: plan?.features || [],
+      checked: Boolean(auth.session),
+    }
+  })
 
   const errorMessage = computed(() =>
     auth.isAuthenticated
@@ -191,6 +235,27 @@ export function useMitraDashboard() {
       currency: 'IDR',
       maximumFractionDigits: 0,
     }).format(value)
+  }
+
+  function formatMoney(value: number, currency: string) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: currency || 'IDR',
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+
+  function formatDate(value: string) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Jakarta',
+    }).format(date)
   }
 
   function applyDefaultsFromCatalog() {
@@ -403,6 +468,14 @@ export function useMitraDashboard() {
     await saveCurrentStep(true)
   }
 
+  async function refreshDashboard() {
+    if (!auth.isAuthenticated) return
+    await Promise.allSettled([
+      auth.fetchSession(),
+      operations.fetchDashboard(),
+    ])
+  }
+
   async function saveAndExit() {
     if (auth.tenantStatus === 'onboarding') {
       const saved = await saveCurrentStep(false)
@@ -438,6 +511,7 @@ export function useMitraDashboard() {
       products.reset()
       bookings.reset()
       inventory.reset()
+      users.reset()
       await refreshTenantData(false)
       successMessage.value = `Workspace ${auth.session?.tenant.name || 'aktif'} sedang digunakan.`
     } catch {
@@ -454,6 +528,7 @@ export function useMitraDashboard() {
     products.reset()
     bookings.reset()
     inventory.reset()
+    users.reset()
     successMessage.value = ''
 
     if (!catalog.templates.length || !catalog.plans.length) {
@@ -506,6 +581,7 @@ export function useMitraDashboard() {
     isInitialized,
     loginForm,
     metricCards,
+    subscriptionSummary,
     onboarding,
     onboardingSteps,
     operations,
@@ -521,6 +597,7 @@ export function useMitraDashboard() {
     completeInventory,
     completePricing,
     goLive,
+    refreshDashboard,
     initialize,
     logout,
     goToPreviousStep,

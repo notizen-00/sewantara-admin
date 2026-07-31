@@ -86,9 +86,10 @@ watch(
         <OrganismsOperationsDashboard
           :section="activeSection"
           :metrics="dashboard.metricCards"
+          :subscription="dashboard.subscriptionSummary"
           :loading="dashboard.operations.loading"
           :booking-create-request="bookingCreateRequest"
-          @refresh="dashboard.operations.fetchDashboard"
+          @refresh="dashboard.refreshDashboard"
           @navigate="navigate"
         />
       </div>

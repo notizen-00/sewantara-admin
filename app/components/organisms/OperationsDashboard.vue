@@ -8,12 +8,14 @@ import {
   CalendarDays,
   CircleDollarSign,
   CircleHelp,
+  Crown,
   PackageCheck,
   PackageOpen,
   RefreshCw,
   Settings,
   Tags,
   Users,
+  UserCog,
   WalletCards,
   Wrench,
 } from '@lucide/vue'
@@ -27,9 +29,23 @@ interface DashboardMetric {
   caption: string
 }
 
+interface SubscriptionSummary {
+  planName: string
+  planSlug: string
+  type: string
+  status: string
+  statusLabel: string
+  tone: 'success' | 'danger' | 'warning'
+  validUntil: string
+  priceLabel: string
+  features: Array<{ slug: string; name: string; value: string }>
+  checked: boolean
+}
+
 const props = defineProps<{
   section: string
   metrics: DashboardMetric[]
+  subscription: SubscriptionSummary
   loading?: boolean
   bookingCreateRequest?: number
 }>()
@@ -61,6 +77,11 @@ const moduleContent: Record<string, { title: string; description: string; icon: 
     title: 'Pelanggan',
     description: 'Data pelanggan dan riwayat transaksi rental.',
     icon: Users,
+  },
+  users: {
+    title: 'Manajemen pengguna',
+    description: 'Akun tim, role, permission, dan akses cabang.',
+    icon: UserCog,
   },
   inventory: {
     title: 'Inventory',
@@ -119,7 +140,7 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <p class="text-sm font-medium text-neutral-500">{{ currentDate }}</p>
-        <h1 class="mt-1 text-2xl font-bold text-neutral-900 sm:text-3xl">Ringkasan bisnis</h1>
+        <h1 class="mt-1 text-2xl font-bold text-neutral-900 sm:text-3xl">Dashboard bisnis</h1>
         <p class="mt-2 text-sm text-neutral-500">Pantau kondisi rental dari laporan tenant terbaru.</p>
       </div>
       <button
@@ -132,6 +153,63 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
         {{ loading ? 'Memuat...' : 'Perbarui data' }}
       </button>
     </header>
+
+    <article class="flex flex-wrap items-center justify-between gap-4 rounded-md border border-neutral-200 bg-neutral-0 p-5 shadow-card">
+      <div class="flex min-w-0 items-center gap-4">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-amber-50 text-amber-700">
+          <Crown :size="22" />
+        </span>
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="truncate text-base font-semibold text-neutral-900">{{ subscription.planName }}</h2>
+            <span
+              :class="[
+                'rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
+                subscription.tone === 'success'
+                  ? 'bg-primary-50 text-primary-700'
+                  : subscription.tone === 'danger'
+                    ? 'bg-red-50 text-danger-500'
+                    : 'bg-amber-50 text-amber-700',
+              ]"
+            >
+              {{ subscription.statusLabel }}
+            </span>
+          </div>
+          <p class="mt-1 text-sm text-neutral-500">
+            Jenis subscription: <strong class="font-semibold text-neutral-700">{{ subscription.type }}</strong>
+          </p>
+          <p class="mt-1 text-xs font-medium text-neutral-500">{{ subscription.priceLabel }}</p>
+        </div>
+      </div>
+      <div class="text-left sm:text-right">
+        <p class="text-xs font-medium text-neutral-500">
+          {{ subscription.status === 'trial' ? 'Trial berakhir' : 'Masa berlaku' }}
+        </p>
+        <p class="mt-1 text-sm font-semibold text-neutral-900">{{ subscription.validUntil }}</p>
+        <p class="mt-1 text-[10px] font-medium text-neutral-400">
+          {{ subscription.checked ? 'Diperiksa melalui sesi tenant' : 'Sesi tenant belum dimuat' }}
+        </p>
+      </div>
+      <div v-if="subscription.features.length" class="w-full border-t border-neutral-200 pt-4">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">Feature paket</p>
+        <div class="flex flex-wrap gap-2">
+          <span
+            v-for="feature in subscription.features.slice(0, 6)"
+            :key="feature.slug"
+            class="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600"
+          >
+            {{ feature.name }}:
+            <strong class="font-semibold text-neutral-900">{{ feature.value }}</strong>
+          </span>
+          <span
+            v-if="subscription.features.length > 6"
+            class="rounded-md bg-neutral-100 px-3 py-2 text-xs font-medium text-neutral-600"
+          >
+            +{{ subscription.features.length - 6 }} feature lainnya
+          </span>
+        </div>
+      </div>
+    </article>
 
     <div class="grid grid-cols-4 gap-4 max-xl:grid-cols-2 max-sm:grid-cols-1">
       <MoleculesMetricCard
@@ -268,6 +346,16 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
     @back="$emit('navigate', 'overview')"
   />
 
+  <OrganismsCustomerWorkspace
+    v-else-if="section === 'customers'"
+    @back="$emit('navigate', 'overview')"
+  />
+
+  <OrganismsUserWorkspace
+    v-else-if="section === 'users'"
+    @back="$emit('navigate', 'overview')"
+  />
+
   <section v-else class="grid gap-6">
     <header>
       <button
@@ -276,7 +364,7 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
         @click="$emit('navigate', 'overview')"
       >
         <ArrowLeft :size="16" />
-        Kembali ke ringkasan
+        Kembali ke dashboard
       </button>
       <h1 class="text-2xl font-bold text-neutral-900 sm:text-3xl">{{ currentModule.title }}</h1>
       <p class="mt-2 text-sm text-neutral-500">{{ currentModule.description }}</p>

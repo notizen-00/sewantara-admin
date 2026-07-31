@@ -585,7 +585,7 @@ watch(
           @click="$emit('back')"
         >
           <ArrowLeft :size="16" />
-          Kembali ke ringkasan
+          Kembali ke dashboard
         </button>
         <div class="flex items-center gap-3">
           <span class="grid h-11 w-11 place-items-center rounded-md bg-primary-50 text-primary-700">

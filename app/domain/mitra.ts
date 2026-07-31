@@ -89,6 +89,41 @@ export interface TenantSession {
   branch: Branch
   user: TenantUser
   roles?: TenantRole[]
+  subscription: TenantSubscription | null
+}
+
+export interface TenantSubscriptionFeature {
+  slug: string
+  name: string
+  value: string
+}
+
+export interface TenantSubscriptionPlan {
+  id: number
+  name: string
+  slug: string
+  description?: string | null
+  price: string
+  signup_fee: string
+  currency: string
+  invoice_period: number
+  invoice_interval: BillingInterval
+  features: TenantSubscriptionFeature[]
+}
+
+export interface TenantSubscription {
+  id: number
+  name: string
+  slug: string
+  status: string
+  is_active: boolean
+  is_on_trial: boolean
+  is_canceled: boolean
+  trial_ends_at?: string | null
+  starts_at?: string | null
+  ends_at?: string | null
+  canceled_at?: string | null
+  plan: TenantSubscriptionPlan | null
 }
 
 export interface RegisterPayload {
