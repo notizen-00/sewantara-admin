@@ -73,3 +73,16 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Docker / VPS
+
+Konfigurasi production Docker tersedia melalui `Dockerfile` dan
+`docker-compose.yml`.
+
+```bash
+cp .env.production.example .env.production
+docker compose --env-file .env.production up -d --build
+```
+
+Lihat [DEPLOYMENT.md](./DEPLOYMENT.md) untuk panduan VPS, Nginx, HTTPS, update,
+dan operasional container.
