@@ -3,10 +3,13 @@ import type { SubscriptionPayment } from '~/domain/mitra'
 import { useBillingRepository } from '~/infrastructure/repositories/billingRepository'
 
 const pendingPaymentKey = 'sewantara.subscription_payment_id'
+const paymentHistoryKey = 'sewantara.subscription_payment_ids'
 
 export const useBillingStore = defineStore('billing', () => {
   const payment = ref<SubscriptionPayment | null>(null)
+  const history = ref<SubscriptionPayment[]>([])
   const loading = ref(false)
+  const historyLoading = ref(false)
   const polling = ref(false)
   const error = ref('')
   let pollGeneration = 0
@@ -15,7 +18,22 @@ export const useBillingStore = defineStore('billing', () => {
   const isPending = computed(() => payment.value?.status === 'pending')
 
   function rememberPayment(paymentId: string) {
-    if (process.client) localStorage.setItem(pendingPaymentKey, paymentId)
+    if (!process.client) return
+
+    localStorage.setItem(pendingPaymentKey, paymentId)
+    const ids = paymentHistoryIds().filter((id) => id !== paymentId)
+    localStorage.setItem(paymentHistoryKey, JSON.stringify([paymentId, ...ids].slice(0, 50)))
+  }
+
+  function paymentHistoryIds() {
+    if (!process.client) return [] as string[]
+
+    try {
+      const value = JSON.parse(localStorage.getItem(paymentHistoryKey) || '[]')
+      return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
+    } catch {
+      return []
+    }
   }
 
   function pendingPaymentId() {
@@ -58,11 +76,35 @@ export const useBillingStore = defineStore('billing', () => {
     try {
       const response = await useBillingRepository().payment(paymentId)
       payment.value = response.data.payment
-      if (response.data.payment.status === 'paid') clearPendingPayment()
+      const historyIndex = history.value.findIndex((item) => item.id === response.data.payment.id)
+      if (historyIndex >= 0) history.value[historyIndex] = response.data.payment
+      if (response.data.payment.status !== 'pending') clearPendingPayment()
       return response.data.payment
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Status pembayaran gagal dimuat.'
       throw err
+    }
+  }
+
+  async function fetchHistory() {
+    const pendingId = pendingPaymentId()
+    const ids = [...new Set([pendingId, ...paymentHistoryIds()].filter(Boolean))]
+    if (!ids.length) {
+      history.value = []
+      return history.value
+    }
+
+    historyLoading.value = true
+    try {
+      const repository = useBillingRepository()
+      const results = await Promise.allSettled(ids.map((id) => repository.payment(id)))
+      history.value = results
+        .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof repository.payment>>> => result.status === 'fulfilled')
+        .map((result) => result.value.data.payment)
+        .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+      return history.value
+    } finally {
+      historyLoading.value = false
     }
   }
 
@@ -95,7 +137,9 @@ export const useBillingStore = defineStore('billing', () => {
 
   return {
     payment,
+    history,
     loading,
+    historyLoading,
     polling,
     error,
     isPaid,
@@ -105,6 +149,7 @@ export const useBillingStore = defineStore('billing', () => {
     createCheckout,
     redirectToCheckout,
     fetchPayment,
+    fetchHistory,
     pollPayment,
     stopPolling,
   }

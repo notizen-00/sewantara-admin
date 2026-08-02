@@ -126,7 +126,7 @@ export interface TenantSubscription {
   plan: TenantSubscriptionPlan | null
 }
 
-export type SubscriptionPaymentStatus = 'pending' | 'paid' | 'failed'
+export type SubscriptionPaymentStatus = 'pending' | 'paid' | 'failed' | 'expired'
 
 export interface SubscriptionPayment {
   id: string

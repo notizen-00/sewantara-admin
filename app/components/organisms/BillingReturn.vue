@@ -10,6 +10,7 @@ const initialized = ref(false)
 const displayState = computed(() => {
   if (billing.payment?.status === 'paid') return 'paid'
   if (billing.payment?.status === 'failed') return 'failed'
+  if (billing.payment?.status === 'expired') return 'expired'
   if (props.result === 'cancel') return 'cancel'
   if (billing.polling || billing.payment?.status === 'pending') return 'pending'
   return 'unknown'
@@ -34,6 +35,12 @@ const content = computed(() => ({
     icon: XCircle,
     tone: 'text-danger-500 bg-red-50',
   },
+  expired: {
+    title: 'Sesi pembayaran kedaluwarsa',
+    description: 'Batas waktu checkout Xendit telah berakhir. Subscription belum berubah dan kamu bisa membuat pembayaran baru.',
+    icon: XCircle,
+    tone: 'text-neutral-700 bg-neutral-100',
+  },
   cancel: {
     title: 'Pembayaran dibatalkan',
     description: 'Tidak ada pembayaran yang dikonfirmasi. Trial yang masih berlaku tidak terpengaruh.',
@@ -48,6 +55,15 @@ const content = computed(() => ({
   },
 }[displayState.value]))
 
+async function refreshActivatedSubscription() {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await auth.fetchSession()
+    if (auth.subscription?.status === 'active') return true
+    await new Promise((resolve) => setTimeout(resolve, 1_000))
+  }
+  return auth.subscription?.status === 'active'
+}
+
 async function initialize() {
   auth.hydrateFromStorage()
   if (!auth.isAuthenticated || !billing.pendingPaymentId()) {
@@ -58,7 +74,7 @@ async function initialize() {
   try {
     if (props.result === 'success') {
       const payment = await billing.pollPayment()
-      if (payment?.status === 'paid') await auth.fetchSession()
+      if (payment?.status === 'paid') await refreshActivatedSubscription()
     } else {
       await billing.fetchPayment()
     }
@@ -100,10 +116,10 @@ onUnmounted(billing.stopPolling)
       <p v-if="billing.error" class="mt-4 text-sm text-danger-500">{{ billing.error }}</p>
 
       <div class="mt-6 grid gap-3">
-        <NuxtLink v-if="auth.isAuthenticated" to="/" class="inline-flex min-h-11 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700">
+        <NuxtLink v-if="auth.isAuthenticated && initialized" to="/" class="inline-flex min-h-11 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700">
           Kembali ke dashboard
         </NuxtLink>
-        <AtomsAppButton v-if="['failed', 'cancel'].includes(displayState) && auth.isAuthenticated" variant="secondary" :disabled="billing.loading" @click="retryCheckout">
+        <AtomsAppButton v-if="['failed', 'expired', 'cancel'].includes(displayState) && auth.isAuthenticated" variant="secondary" :disabled="billing.loading" @click="retryCheckout">
           <span class="flex items-center gap-2"><CreditCard :size="16" />{{ billing.loading ? 'Membuat checkout...' : 'Coba bayar lagi' }}</span>
         </AtomsAppButton>
         <AtomsAppButton v-if="displayState === 'pending' && initialized" variant="secondary" :disabled="billing.polling" @click="initialize">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Check, Clock3, CreditCard, ExternalLink, ShieldCheck } from '@lucide/vue'
+import { ArrowLeft, Check, Clock3, CreditCard, ExternalLink, History, RefreshCw, ShieldCheck } from '@lucide/vue'
 
 withDefaults(defineProps<{ showBack?: boolean }>(), { showBack: true })
 defineEmits<{ back: [] }>()
@@ -40,6 +40,34 @@ async function payNow() {
     // Pesan error ditampilkan dari store billing.
   }
 }
+
+function formatAmount(amount: string, currency: string) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: currency || 'IDR',
+    maximumFractionDigits: 0,
+  }).format(Number(amount))
+}
+
+function formatPaymentDate(value: string) {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
+  }).format(new Date(value))
+}
+
+const paymentStatus = {
+  paid: { label: 'Berhasil', class: 'bg-primary-50 text-primary-700' },
+  pending: { label: 'Menunggu', class: 'bg-amber-50 text-amber-700' },
+  failed: { label: 'Gagal', class: 'bg-red-50 text-danger-500' },
+  expired: { label: 'Kedaluwarsa', class: 'bg-neutral-100 text-neutral-700' },
+} as const
+
+onMounted(billing.fetchHistory)
 </script>
 
 <template>
@@ -122,5 +150,72 @@ async function payNow() {
         </p>
       </aside>
     </div>
+
+    <section class="overflow-hidden rounded-md border border-neutral-200 bg-neutral-0 shadow-card">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+        <div class="flex items-center gap-3">
+          <span class="grid h-9 w-9 place-items-center rounded-md bg-primary-50 text-primary-700">
+            <History :size="18" />
+          </span>
+          <div>
+            <h2 class="text-base font-bold text-neutral-900">Riwayat pembayaran</h2>
+            <p class="mt-0.5 text-xs text-neutral-500">Transaksi checkout yang dibuat dari perangkat ini.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="inline-flex min-h-9 items-center gap-2 rounded-md border border-neutral-200 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+          :disabled="billing.historyLoading"
+          @click="billing.fetchHistory"
+        >
+          <RefreshCw :size="15" :class="{ 'animate-spin': billing.historyLoading }" />
+          Perbarui
+        </button>
+      </div>
+
+      <div v-if="billing.historyLoading && !billing.history.length" class="grid min-h-44 place-items-center p-6 text-sm text-neutral-500">
+        Memuat riwayat pembayaran...
+      </div>
+
+      <div v-else-if="!billing.history.length" class="grid min-h-44 place-items-center p-6 text-center">
+        <div>
+          <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-neutral-100 text-neutral-500">
+            <CreditCard :size="20" />
+          </span>
+          <p class="mt-3 text-sm font-semibold text-neutral-900">Belum ada pembayaran</p>
+          <p class="mt-1 text-xs text-neutral-500">Transaksi baru akan muncul setelah checkout Xendit dibuat.</p>
+        </div>
+      </div>
+
+      <div v-else class="overflow-x-auto">
+        <table class="w-full min-w-[760px] text-left text-sm">
+          <thead class="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <tr>
+              <th class="px-5 py-3">Nomor pembayaran</th>
+              <th class="px-5 py-3">Tanggal</th>
+              <th class="px-5 py-3">Metode</th>
+              <th class="px-5 py-3 text-right">Nominal</th>
+              <th class="px-5 py-3 text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-neutral-200">
+            <tr v-for="item in billing.history" :key="item.id" class="hover:bg-neutral-50">
+              <td class="px-5 py-4">
+                <strong class="block font-semibold text-neutral-900">{{ item.payment_number }}</strong>
+                <span class="mt-1 block max-w-[220px] truncate text-xs text-neutral-500">{{ item.gateway_reference || item.id }}</span>
+              </td>
+              <td class="whitespace-nowrap px-5 py-4 text-neutral-700">{{ formatPaymentDate(item.created_at) }}</td>
+              <td class="px-5 py-4 font-medium capitalize text-neutral-700">{{ item.gateway }}</td>
+              <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-neutral-900">{{ formatAmount(item.amount, item.currency) }}</td>
+              <td class="px-5 py-4 text-right">
+                <span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-bold', paymentStatus[item.status].class]">
+                  {{ paymentStatus[item.status].label }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 </template>
