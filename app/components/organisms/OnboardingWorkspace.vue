@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Boxes, CheckCircle2, PackagePlus } from '@lucide/vue'
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
 
 defineProps<{
@@ -135,14 +136,183 @@ const operatingDays = [
       v-else-if="dashboard.selectedOnboardingStep === 'inventory'"
       eyebrow="Tahap 3"
       title="Resource dan unit"
-      description="Backend akan memverifikasi minimal satu unit serialized atau stok quantity pada cabang aktif."
+      description="Tambahkan produk beserta unit atau stok awalnya. Data langsung disimpan ke cabang aktif melalui API tenant."
     >
-      <div class="rounded-md border border-neutral-200 bg-neutral-50 p-5">
-        <p class="text-sm font-semibold text-neutral-900">Status inventory</p>
-        <p class="mt-2 text-sm leading-6 text-neutral-500">
-          Tambahkan kategori, produk, lalu unit atau stok melalui modul inventory. Setelah datanya tersedia, lanjutkan untuk menjalankan verifikasi.
-        </p>
+      <div class="mb-6 grid grid-cols-3 gap-3 max-md:grid-cols-1">
+        <div class="rounded-md border border-neutral-200 bg-neutral-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Produk aktif</p>
+          <p class="mt-2 text-2xl font-bold text-neutral-900">{{ dashboard.products.products.length }}</p>
+        </div>
+        <div class="rounded-md border border-neutral-200 bg-neutral-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Unit serialized</p>
+          <p class="mt-2 text-2xl font-bold text-neutral-900">{{ dashboard.inventory.units.length }}</p>
+        </div>
+        <div class="rounded-md border border-neutral-200 bg-neutral-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Produk quantity</p>
+          <p class="mt-2 text-2xl font-bold text-neutral-900">{{ dashboard.inventory.stocks.length }}</p>
+        </div>
       </div>
+
+      <form class="grid gap-6" @submit.prevent="dashboard.submitOnboardingProduct">
+        <section class="rounded-lg border border-neutral-200 bg-neutral-0 p-5 max-sm:p-4">
+          <div class="mb-5 flex items-start gap-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-700">
+              <PackagePlus :size="19" />
+            </span>
+            <div>
+              <h4 class="text-sm font-bold text-neutral-900">Informasi produk</h4>
+              <p class="mt-1 text-xs leading-5 text-neutral-500">Nama, kategori, dan SKU akan menjadi identitas produk di seluruh transaksi rental.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+            <AtomsAppSelect
+              v-model="dashboard.inventoryProductForm.category_id"
+              label="Kategori"
+              :options="dashboard.inventoryCategoryOptions"
+            />
+            <AtomsAppInput
+              v-if="dashboard.inventoryProductForm.category_id === null"
+              v-model="dashboard.inventoryProductForm.new_category_name"
+              label="Nama kategori baru"
+              placeholder="Contoh: Kamera"
+              required
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.name"
+              label="Nama produk"
+              placeholder="Contoh: Sony A7 IV"
+              required
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.sku"
+              label="SKU"
+              placeholder="SONYA7IV"
+              required
+              :maxlength="50"
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.slug"
+              label="Slug produk"
+              placeholder="sony-a7-iv"
+              required
+              pattern="[a-z0-9-]+"
+            />
+            <AtomsAppInput v-model="dashboard.inventoryProductForm.brand" label="Merek" placeholder="Sony" />
+            <AtomsAppInput v-model="dashboard.inventoryProductForm.model" label="Model" placeholder="ILCE-7M4" />
+          </div>
+
+          <label class="mt-4 grid gap-2 text-sm font-medium text-neutral-700">
+            Deskripsi produk
+            <textarea
+              v-model="dashboard.inventoryProductForm.description"
+              rows="3"
+              maxlength="1000"
+              placeholder="Tuliskan spesifikasi atau informasi singkat produk..."
+              class="w-full resize-y rounded-md border border-neutral-200 bg-neutral-0 px-3 py-2 text-neutral-900 outline-none transition placeholder:text-neutral-500 focus:border-primary-600 focus:ring-4 focus:ring-primary-100"
+            ></textarea>
+          </label>
+        </section>
+
+        <section class="rounded-lg border border-neutral-200 bg-neutral-0 p-5 max-sm:p-4">
+          <div class="mb-5 flex items-start gap-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-700">
+              <Boxes :size="19" />
+            </span>
+            <div>
+              <h4 class="text-sm font-bold text-neutral-900">Model inventory dan biaya</h4>
+              <p class="mt-1 text-xs leading-5 text-neutral-500">Pilih serialized untuk barang dengan identitas unit, atau quantity untuk stok jumlah.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+            <AtomsAppSelect
+              v-model="dashboard.inventoryProductForm.inventory_type"
+              label="Tipe inventory"
+              :options="[
+                { label: 'Serialized — setiap unit unik', value: 'serialized' },
+                { label: 'Quantity — berdasarkan jumlah stok', value: 'quantity' },
+              ]"
+              required
+            />
+            <AtomsAppSelect
+              v-model="dashboard.inventoryProductForm.default_pricing_type"
+              label="Model harga bawaan"
+              :options="[
+                { label: 'Per hari', value: 'daily' },
+                { label: 'Per jam', value: 'hourly' },
+                { label: 'Per minggu', value: 'weekly' },
+                { label: 'Per bulan', value: 'monthly' },
+                { label: 'Per acara', value: 'event' },
+                { label: 'Kustom', value: 'custom' },
+              ]"
+              required
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.minimum_rental_duration"
+              label="Durasi rental minimum"
+              type="number"
+              :min="1"
+              required
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.deposit_amount"
+              label="Deposit (Rp)"
+              type="number"
+              :min="0"
+              step="1000"
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.late_fee_amount"
+              label="Denda keterlambatan (Rp)"
+              type="number"
+              :min="0"
+              step="1000"
+            />
+            <AtomsAppInput
+              v-model="dashboard.inventoryProductForm.purchase_price"
+              label="Harga pembelian (Rp)"
+              type="number"
+              :min="0"
+              step="1000"
+            />
+          </div>
+
+          <div class="mt-5 border-t border-neutral-200 pt-5">
+            <div v-if="dashboard.inventoryProductForm.inventory_type === 'serialized'" class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+              <AtomsAppInput
+                v-model="dashboard.inventoryProductForm.unit_code"
+                label="Kode unit pertama"
+                placeholder="UNIT-A7IV-001"
+                required
+              />
+              <AtomsAppInput
+                v-model="dashboard.inventoryProductForm.serial_number"
+                label="Serial number"
+                placeholder="Opsional"
+              />
+            </div>
+            <AtomsAppInput
+              v-else
+              v-model="dashboard.inventoryProductForm.initial_quantity"
+              label="Jumlah stok awal"
+              type="number"
+              :min="1"
+              required
+            />
+          </div>
+        </section>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 rounded-md border border-primary-100 bg-primary-50 p-4">
+          <p class="flex max-w-2xl items-start gap-2 text-xs leading-5 text-primary-800">
+            <CheckCircle2 :size="16" class="mt-0.5 shrink-0" />
+            Produk dan resource awal disimpan bersama. Setelah berhasil, kamu bisa menambahkan produk lain atau menekan “Verifikasi & lanjutkan”.
+          </p>
+          <AtomsAppButton type="submit" :disabled="dashboard.inventorySetupLoading">
+            {{ dashboard.inventorySetupLoading ? 'Menyimpan...' : 'Simpan produk & resource' }}
+          </AtomsAppButton>
+        </div>
+      </form>
     </MoleculesFormSection>
 
     <MoleculesFormSection

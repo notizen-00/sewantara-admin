@@ -5,6 +5,8 @@ import type {
   RegisterPayload,
   RentalOnboardingPayload,
 } from '~/domain/mitra'
+import type { CategoryPayload, ProductPayload } from '~/domain/product'
+import type { ProductUnitCreatePayload, StockAdjustmentPayload } from '~/domain/inventory'
 import { ApiRequestError } from '~/domain/api'
 
 type OnboardingStepKey = 'business' | 'rental' | 'inventory' | 'pricing' | 'booking' | 'payment' | 'review'
@@ -156,9 +158,43 @@ export function useMitraDashboard() {
     }
   })
 
+  const inventoryProductForm = reactive({
+    category_id: null as number | null,
+    new_category_name: '',
+    name: '',
+    slug: '',
+    sku: '',
+    brand: '',
+    model: '',
+    description: '',
+    inventory_type: 'serialized' as 'serialized' | 'quantity',
+    default_pricing_type: 'daily' as 'hourly' | 'daily' | 'weekly' | 'monthly' | 'event' | 'custom',
+    minimum_rental_duration: 1,
+    deposit_amount: 0,
+    late_fee_amount: 0,
+    unit_code: '',
+    serial_number: '',
+    initial_quantity: 1,
+    purchase_price: 0,
+  })
+
+  const inventoryCategoryOptions = computed(() => [
+    { label: '+ Buat kategori baru', value: null as number | null },
+    ...products.categories
+      .filter((category) => category.is_active)
+      .map((category) => ({ label: category.name, value: category.id as number | null })),
+  ])
+  const inventorySetupLoading = computed(() =>
+    products.loadingCategories
+    || products.loadingProducts
+    || products.saving
+    || inventory.creatingUnit
+    || inventory.adjustingStock,
+  )
+
   const errorMessage = computed(() =>
     auth.isAuthenticated
-      ? billing.error || auth.error || branches.error || onboarding.error || operations.error
+      ? billing.error || auth.error || branches.error || onboarding.error || products.error || inventory.error || operations.error
       : auth.error || catalog.error,
   )
 
@@ -354,6 +390,148 @@ export function useMitraDashboard() {
       }
 
       await operations.fetchDashboard()
+    }
+  }
+
+  function slugifyProduct(value: string) {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  async function loadOnboardingInventoryData() {
+    const results = await Promise.allSettled([
+      products.fetchCategories({ is_active: true, per_page: 100 }),
+      products.fetchProducts({ is_active: true, per_page: 100 }),
+      inventory.fetchUnits({ per_page: 100 }),
+      inventory.fetchStocks(),
+    ])
+
+    if (!inventoryProductForm.category_id && products.categories[0]) {
+      inventoryProductForm.category_id = products.categories[0].id
+    }
+
+    const failure = results.find((result) => result.status === 'rejected')
+    if (failure?.status === 'rejected') throw failure.reason
+  }
+
+  function resetInventoryProductForm(categoryId: number | null = inventoryProductForm.category_id) {
+    Object.assign(inventoryProductForm, {
+      category_id: categoryId,
+      new_category_name: '',
+      name: '',
+      slug: '',
+      sku: '',
+      brand: '',
+      model: '',
+      description: '',
+      inventory_type: 'serialized',
+      default_pricing_type: 'daily',
+      minimum_rental_duration: 1,
+      deposit_amount: 0,
+      late_fee_amount: 0,
+      unit_code: '',
+      serial_number: '',
+      initial_quantity: 1,
+      purchase_price: 0,
+    })
+  }
+
+  async function submitOnboardingProduct() {
+    successMessage.value = ''
+    const productName = inventoryProductForm.name.trim()
+    const productSlug = inventoryProductForm.slug.trim()
+    const sku = inventoryProductForm.sku.trim().toUpperCase()
+
+    if (!productName || !productSlug || !sku) {
+      products.error = 'Nama produk, slug, dan SKU wajib diisi.'
+      return false
+    }
+    if (!inventoryProductForm.category_id && !inventoryProductForm.new_category_name.trim()) {
+      products.error = 'Pilih kategori atau masukkan nama kategori baru.'
+      return false
+    }
+    if (inventoryProductForm.inventory_type === 'serialized' && !inventoryProductForm.unit_code.trim()) {
+      inventory.error = 'Kode unit wajib diisi untuk produk serialized.'
+      return false
+    }
+    const initialQuantity = Number(inventoryProductForm.initial_quantity)
+    if (inventoryProductForm.inventory_type === 'quantity' && (!Number.isInteger(initialQuantity) || initialQuantity < 1)) {
+      inventory.error = 'Stok awal harus berupa bilangan minimal 1.'
+      return false
+    }
+
+    products.error = ''
+    inventory.error = ''
+
+    try {
+      let categoryId = inventoryProductForm.category_id
+      if (!categoryId) {
+        const categoryName = inventoryProductForm.new_category_name.trim()
+        const categoryPayload: CategoryPayload = {
+          parent_id: null,
+          name: categoryName,
+          slug: slugifyProduct(categoryName),
+          description: null,
+          sort_order: 0,
+          is_active: true,
+        }
+        categoryId = (await products.saveCategory(categoryPayload)).id
+      }
+
+      const productPayload: ProductPayload = {
+        category_id: categoryId,
+        name: productName,
+        slug: productSlug,
+        sku,
+        brand: inventoryProductForm.brand.trim() || null,
+        model: inventoryProductForm.model.trim() || null,
+        description: inventoryProductForm.description.trim() || null,
+        inventory_type: inventoryProductForm.inventory_type,
+        default_pricing_type: inventoryProductForm.default_pricing_type,
+        minimum_rental_duration: Math.max(1, Number(inventoryProductForm.minimum_rental_duration || 1)),
+        deposit_amount: Math.max(0, Number(inventoryProductForm.deposit_amount || 0)),
+        late_fee_amount: Math.max(0, Number(inventoryProductForm.late_fee_amount || 0)),
+        is_featured: false,
+        is_active: true,
+      }
+      const savedProduct = await products.saveProduct(productPayload)
+
+      if (savedProduct.inventory_type === 'serialized') {
+        const unitPayload: ProductUnitCreatePayload = {
+          product_id: savedProduct.id,
+          unit_code: inventoryProductForm.unit_code.trim().toUpperCase(),
+          barcode: null,
+          qr_code: null,
+          serial_number: inventoryProductForm.serial_number.trim() || null,
+          status: 'available',
+          condition: 'good',
+          purchase_date: null,
+          purchase_price: Math.max(0, Number(inventoryProductForm.purchase_price || 0)),
+          current_meter: 0,
+          meter_unit: null,
+          notes: 'Unit awal dari onboarding tenant.',
+        }
+        await inventory.createUnit(unitPayload)
+      } else {
+        const stockPayload: StockAdjustmentPayload = {
+          product_id: savedProduct.id,
+          quantity: initialQuantity,
+          notes: 'Stok awal dari onboarding tenant.',
+        }
+        await inventory.adjustStock(stockPayload)
+      }
+
+      await loadOnboardingInventoryData()
+      resetInventoryProductForm(categoryId)
+      successMessage.value = `Produk ${savedProduct.name} dan resource awal berhasil ditambahkan.`
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -593,6 +771,28 @@ export function useMitraDashboard() {
     applyDefaultsFromCatalog,
   )
 
+  let lastAutoProductSlug = ''
+  let lastAutoProductSku = ''
+  watch(
+    () => inventoryProductForm.name,
+    (name) => {
+      const nextSlug = slugifyProduct(name)
+      const nextSku = nextSlug.replace(/-/g, '').slice(0, 16).toUpperCase()
+      if (!inventoryProductForm.slug || inventoryProductForm.slug === lastAutoProductSlug) {
+        inventoryProductForm.slug = nextSlug
+      }
+      if (!inventoryProductForm.sku || inventoryProductForm.sku === lastAutoProductSku) {
+        inventoryProductForm.sku = nextSku
+      }
+      lastAutoProductSlug = nextSlug
+      lastAutoProductSku = nextSku
+    },
+  )
+
+  watch(selectedOnboardingStep, (step) => {
+    if (step === 'inventory') loadOnboardingInventoryData().catch(() => undefined)
+  })
+
   onMounted(() => window.addEventListener('sewantara:subscription-error', handleSubscriptionError))
   onUnmounted(() => window.removeEventListener('sewantara:subscription-error', handleSubscriptionError))
 
@@ -608,6 +808,10 @@ export function useMitraDashboard() {
     continueLabel,
     errorMessage,
     formatCurrency,
+    inventoryCategoryOptions,
+    inventoryProductForm,
+    inventorySetupLoading,
+    inventory,
     isInitialized,
     loginForm,
     metricCards,
@@ -616,6 +820,7 @@ export function useMitraDashboard() {
     onboardingSteps,
     operations,
     paymentsForm,
+    products,
     registerForm,
     registrationBillingChoice,
     requiresBillingRecovery,
@@ -641,6 +846,7 @@ export function useMitraDashboard() {
     continueSetup,
     savePayments,
     saveRental,
+    submitOnboardingProduct,
     selectOnboardingStep,
     switchTenant,
     switchBranch,
