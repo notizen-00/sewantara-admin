@@ -365,7 +365,7 @@ const operatingDays = [
               label="Harga sewa (Rp)"
               type="number"
               :min="1"
-              step="1000"
+              step="1"
               placeholder="250000"
               required
             />
