@@ -35,7 +35,7 @@ function createBusinessForm(): SettingsBusinessForm {
 
 function createBrandingForm(): SettingsBrandingForm {
   return {
-    primary_color: '#0F766E',
+    primary_color: '#BE123C',
     secondary_color: '#F59E0B',
   }
 }
@@ -122,7 +122,7 @@ export function useSettingsPresenter() {
     })
 
     Object.assign(forms.branding, createBrandingForm(), {
-      primary_color: snapshot.branding.primary_color || '#0F766E',
+      primary_color: snapshot.branding.primary_color || '#BE123C',
       secondary_color: snapshot.branding.secondary_color || '#F59E0B',
     })
     Object.assign(forms.rental, createRentalForm(), snapshot.rental_engine || {})
@@ -181,7 +181,7 @@ export function useSettingsPresenter() {
         || !/^#[0-9A-F]{6}$/i.test(forms.branding.secondary_color)
       )
     ) {
-      snackbar.warning('Warna branding harus menggunakan format hex, misalnya #0F766E.')
+      snackbar.warning('Warna branding harus menggunakan format hex, misalnya #BE123C.')
       return false
     }
     if (selectedSection.value === 'rental') {
