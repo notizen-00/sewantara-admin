@@ -126,6 +126,34 @@ export interface TenantSubscription {
   plan: TenantSubscriptionPlan | null
 }
 
+export type SubscriptionPaymentStatus = 'pending' | 'paid' | 'failed'
+
+export interface SubscriptionPayment {
+  id: string
+  payment_number: string
+  gateway: 'xendit' | string
+  gateway_reference: string | null
+  status: SubscriptionPaymentStatus
+  amount: string
+  currency: string
+  paid_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SubscriptionCheckoutResult {
+  payment: SubscriptionPayment
+  checkout: {
+    gateway: 'xendit' | string
+    token: string
+    redirect_url: string
+  }
+}
+
+export interface SubscriptionPaymentResult {
+  payment: SubscriptionPayment
+}
+
 export interface RegisterPayload {
   business_name: string
   business_type: string

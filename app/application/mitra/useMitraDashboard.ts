@@ -12,6 +12,7 @@ type OnboardingStepKey = 'business' | 'rental' | 'inventory' | 'pricing' | 'book
 export function useMitraDashboard() {
   const catalog = useCatalogStore()
   const auth = useAuthStore()
+  const billing = useBillingStore()
   const branches = useBranchStore()
   const onboarding = useOnboardingStore()
   const operations = useOperationsStore()
@@ -22,8 +23,10 @@ export function useMitraDashboard() {
   const users = useUserStore()
 
   const activeAuthTab = ref<'login' | 'register'>('login')
+  const registrationBillingChoice = ref<'trial' | 'pay_now'>('trial')
   const successMessage = ref('')
   const isInitialized = ref(false)
+  const requiresBillingRecovery = ref(false)
   const selectedOnboardingStep = ref<OnboardingStepKey>('business')
 
   const loginForm = reactive({
@@ -106,6 +109,9 @@ export function useMitraDashboard() {
     return auth.registeredTenant?.tenant.name || 'Sewantara Mitra'
   })
   const tenantStatusLabel = computed(() => auth.session?.tenant.status || (auth.isAuthenticated ? 'onboarding' : 'guest'))
+  const selectedRegistrationPlan = computed(() =>
+    catalog.plans.find((plan) => plan.id === Number(registerForm.plan_id)) || null,
+  )
   const subscriptionSummary = computed(() => {
     const subscription = auth.subscription
     const plan = subscription?.plan
@@ -152,7 +158,7 @@ export function useMitraDashboard() {
 
   const errorMessage = computed(() =>
     auth.isAuthenticated
-      ? auth.error || branches.error || onboarding.error || operations.error
+      ? billing.error || auth.error || branches.error || onboarding.error || operations.error
       : auth.error || catalog.error,
   )
 
@@ -351,13 +357,29 @@ export function useMitraDashboard() {
     }
   }
 
+  function handleSubscriptionError(event: Event) {
+    const code = (event as CustomEvent<{ code?: string }>).detail?.code
+    if (code === 'SUBSCRIPTION_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
+      requiresBillingRecovery.value = true
+    }
+  }
+
   async function submitRegister() {
     successMessage.value = ''
     try {
       await auth.register(registerForm)
-      successMessage.value = 'Akun bisnis berhasil dibuat. Masuk dengan email dan password owner untuk memulai onboarding.'
-      loginForm.email = registerForm.owner.email
-      activeAuthTab.value = 'login'
+      await auth.login(registerForm.owner.email, registerForm.owner.password)
+      businessForm.business_name = auth.session?.tenant.name || registerForm.business_name
+
+      if (registrationBillingChoice.value === 'pay_now') {
+        successMessage.value = 'Akun berhasil dibuat. Mengarahkan ke pembayaran Xendit...'
+        await billing.redirectToCheckout()
+        return
+      }
+
+      await refreshTenantData(false)
+      requiresBillingRecovery.value = false
+      successMessage.value = 'Akun berhasil dibuat dan trial sudah aktif. Yuk lanjutkan penyiapan workspace.'
     } catch {
       // Store menampilkan pesan error dari backend.
     }
@@ -369,6 +391,7 @@ export function useMitraDashboard() {
       await auth.login(loginForm.email, loginForm.password)
       businessForm.business_name = auth.session?.tenant.name || businessForm.business_name
       await refreshTenantData(false)
+      requiresBillingRecovery.value = false
     } catch {
       // Store menampilkan pesan error dari backend.
     }
@@ -530,6 +553,7 @@ export function useMitraDashboard() {
     inventory.reset()
     users.reset()
     successMessage.value = ''
+    requiresBillingRecovery.value = false
 
     if (!catalog.templates.length || !catalog.plans.length) {
       await catalog.fetchCatalog()
@@ -548,8 +572,10 @@ export function useMitraDashboard() {
         const [, tenantResult] = await Promise.allSettled([catalogRequest, refreshTenantData()])
         if (tenantResult.status === 'rejected') {
           const err = tenantResult.reason
-          if (err instanceof ApiRequestError && [401, 403, 423].includes(err.status)) {
+          if (err instanceof ApiRequestError && [401, 403].includes(err.status)) {
             auth.clearSession()
+          } else if (err instanceof ApiRequestError && err.status === 423) {
+            requiresBillingRecovery.value = true
           }
         }
       } else {
@@ -567,9 +593,13 @@ export function useMitraDashboard() {
     applyDefaultsFromCatalog,
   )
 
+  onMounted(() => window.addEventListener('sewantara:subscription-error', handleSubscriptionError))
+  onUnmounted(() => window.removeEventListener('sewantara:subscription-error', handleSubscriptionError))
+
   return reactive({
     activeAuthTab,
     auth,
+    billing,
     availableBranches,
     branches,
     bookingForm,
@@ -587,8 +617,11 @@ export function useMitraDashboard() {
     operations,
     paymentsForm,
     registerForm,
+    registrationBillingChoice,
+    requiresBillingRecovery,
     rentalForm,
     selectedOnboardingStep,
+    selectedRegistrationPlan,
     selectedStepLabel,
     successMessage,
     tenantName,

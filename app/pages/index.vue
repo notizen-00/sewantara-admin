@@ -43,6 +43,22 @@ watch(
     <OrganismsAuthGateway :dashboard="dashboard" />
   </TemplatesAuthLayout>
 
+  <main v-else-if="dashboard.requiresBillingRecovery" class="min-h-screen bg-neutral-50 px-4 py-8 text-neutral-900 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-6 flex items-center justify-between gap-4">
+        <MoleculesBrandLockup />
+        <AtomsAppButton variant="ghost" @click="dashboard.logout">Keluar</AtomsAppButton>
+      </div>
+      <MoleculesNoticeBanner
+        tone="danger"
+        message="Akses operasional ditahan sampai subscription aktif. Kamu tetap bisa membuka checkout pembayaran di bawah ini."
+      />
+      <div class="mt-6">
+        <OrganismsBillingWorkspace :show-back="false" />
+      </div>
+    </div>
+  </main>
+
   <TemplatesDashboardLayout
     v-else-if="dashboard.auth.tenantStatus === 'onboarding'"
     :backend-online="dashboard.catalog.backendOnline"

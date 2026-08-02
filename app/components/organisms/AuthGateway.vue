@@ -21,7 +21,7 @@ defineProps<{
           {{
             dashboard.activeAuthTab === 'login'
               ? 'Gunakan akun owner untuk mengakses workspace bisnis Anda.'
-              : 'Daftarkan bisnis dan owner utama untuk memulai onboarding.'
+              : 'Daftarkan bisnis, lalu pilih mulai trial atau langsung aktif dengan Xendit.'
           }}
         </p>
       </div>
@@ -58,6 +58,41 @@ defineProps<{
             pattern="[a-z0-9-]{3,63}"
           />
         </div>
+
+        <fieldset class="grid gap-3">
+          <legend class="mb-1 text-sm font-semibold text-neutral-900">Kapan ingin mulai berlangganan?</legend>
+          <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <button
+              type="button"
+              :class="[
+                'rounded-md border p-4 text-left transition',
+                dashboard.registrationBillingChoice === 'trial'
+                  ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600'
+                  : 'border-neutral-200 bg-neutral-0 hover:border-neutral-500',
+              ]"
+              @click="dashboard.registrationBillingChoice = 'trial'"
+            >
+              <span class="text-sm font-bold text-neutral-900">Mulai trial gratis</span>
+              <span class="mt-1 block text-xs leading-5 text-neutral-500">
+                Tanpa pembayaran selama {{ dashboard.selectedRegistrationPlan?.trial_period || 0 }}
+                {{ dashboard.selectedRegistrationPlan?.trial_interval === 'day' ? 'hari' : dashboard.selectedRegistrationPlan?.trial_interval || 'hari' }}.
+              </span>
+            </button>
+            <button
+              type="button"
+              :class="[
+                'rounded-md border p-4 text-left transition',
+                dashboard.registrationBillingChoice === 'pay_now'
+                  ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600'
+                  : 'border-neutral-200 bg-neutral-0 hover:border-neutral-500',
+              ]"
+              @click="dashboard.registrationBillingChoice = 'pay_now'"
+            >
+              <span class="text-sm font-bold text-neutral-900">Aktifkan sekarang</span>
+              <span class="mt-1 block text-xs leading-5 text-neutral-500">Setelah akun dibuat, lanjut ke pembayaran aman Xendit.</span>
+            </button>
+          </div>
+        </fieldset>
 
         <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
           <AtomsAppSelect
@@ -99,8 +134,14 @@ defineProps<{
 
         <AtomsAppCheckbox v-model="dashboard.registerForm.terms_accepted" label="Saya menyetujui syarat penggunaan Sewantara." required />
 
-        <AtomsAppButton type="submit" :disabled="dashboard.auth.loading">
-          {{ dashboard.auth.loading ? 'Mendaftarkan...' : 'Buat akun mitra' }}
+        <AtomsAppButton type="submit" :disabled="dashboard.auth.loading || dashboard.billing.loading">
+          {{
+            dashboard.auth.loading || dashboard.billing.loading
+              ? 'Memproses...'
+              : dashboard.registrationBillingChoice === 'pay_now'
+                ? 'Buat akun & lanjut bayar'
+                : 'Buat akun & mulai trial'
+          }}
         </AtomsAppButton>
       </form>
     </div>

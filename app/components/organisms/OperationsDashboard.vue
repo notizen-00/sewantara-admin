@@ -189,6 +189,13 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
         <p class="mt-1 text-[10px] font-medium text-neutral-400">
           {{ subscription.checked ? 'Diperiksa melalui sesi tenant' : 'Sesi tenant belum dimuat' }}
         </p>
+        <button
+          type="button"
+          class="mt-3 text-sm font-semibold text-primary-700 hover:text-primary-600"
+          @click="$emit('navigate', 'billing')"
+        >
+          {{ subscription.status === 'trial' ? 'Aktifkan sekarang' : 'Kelola billing' }}
+        </button>
       </div>
       <div v-if="subscription.features.length" class="w-full border-t border-neutral-200 pt-4">
         <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">Feature paket</p>
@@ -343,6 +350,11 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
 
   <OrganismsInventoryWorkspace
     v-else-if="section === 'inventory'"
+    @back="$emit('navigate', 'overview')"
+  />
+
+  <OrganismsBillingWorkspace
+    v-else-if="section === 'billing'"
     @back="$emit('navigate', 'overview')"
   />
 

@@ -48,10 +48,17 @@ async function parseResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const payload = await response.json().catch(() => null)
 
   if (!response.ok || !payload?.success) {
+    const code = payload?.error?.code
+    if (process.client && ['SUBSCRIPTION_REQUIRED', 'SUBSCRIPTION_EXPIRED'].includes(code)) {
+      window.dispatchEvent(new CustomEvent('sewantara:subscription-error', {
+        detail: { code, status: response.status },
+      }))
+    }
+
     throw new ApiRequestError(
       payload?.error?.message || payload?.message || 'Request gagal diproses.',
       response.status,
-      payload?.error?.code,
+      code,
       payload?.error?.details || payload?.errors,
     )
   }
