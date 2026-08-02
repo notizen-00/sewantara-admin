@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Boxes, CheckCircle2, Layers3, PackagePlus, Plus, X } from '@lucide/vue'
+import { Banknote, Boxes, CheckCircle2, Layers3, PackagePlus, Plus, Tags, X } from '@lucide/vue'
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
 
 defineProps<{
@@ -322,13 +322,115 @@ const operatingDays = [
       v-else-if="dashboard.selectedOnboardingStep === 'pricing'"
       eyebrow="Tahap 4"
       title="Harga penyewaan"
-      description="Harga aktif harus kompatibel dengan model rental yang dipilih pada tahap sebelumnya."
+      description="Tetapkan tarif aktif untuk produk pada cabang ini. Tipe harga otomatis mengikuti model rental yang dipilih."
     >
-      <div class="rounded-md border border-neutral-200 bg-neutral-50 p-5">
-        <p class="text-sm font-semibold text-neutral-900">Status harga</p>
-        <p class="mt-2 text-sm leading-6 text-neutral-500">
-          Pastikan minimal satu produk memiliki harga aktif. Sistem akan memeriksa tipe hourly, daily, atau event sesuai konfigurasi rental.
-        </p>
+      <div class="grid grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] gap-5 max-lg:grid-cols-1">
+        <form class="rounded-lg border border-neutral-200 bg-neutral-0 p-5 max-sm:p-4" @submit.prevent="dashboard.submitOnboardingPrice">
+          <div class="mb-5 flex items-start gap-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-700">
+              <Banknote :size="20" />
+            </span>
+            <div>
+              <h4 class="text-sm font-bold text-neutral-900">Tarif produk</h4>
+              <p class="mt-1 text-xs leading-5 text-neutral-500">Harga berlaku pada cabang aktif dan dapat diperbarui kembali dari modul Harga.</p>
+            </div>
+          </div>
+
+          <div class="grid gap-4">
+            <AtomsAppSelect
+              v-model="dashboard.onboardingPriceForm.product_id"
+              label="Produk"
+              :options="dashboard.onboardingPriceProductOptions"
+              required
+            />
+
+            <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+              <label class="grid gap-2 text-sm font-medium text-neutral-700">
+                Tipe harga
+                <span class="inline-flex min-h-11 items-center rounded-md border border-primary-100 bg-primary-50 px-3 font-semibold text-primary-700">
+                  {{ dashboard.compatiblePricingLabel }}
+                </span>
+              </label>
+              <AtomsAppInput
+                v-model="dashboard.onboardingPriceForm.duration"
+                label="Durasi paket"
+                type="number"
+                :min="1"
+                required
+              />
+            </div>
+
+            <AtomsAppInput
+              v-model="dashboard.onboardingPriceForm.price"
+              label="Harga sewa (Rp)"
+              type="number"
+              :min="1"
+              step="1000"
+              placeholder="250000"
+              required
+            />
+
+            <div class="rounded-md border border-neutral-200 bg-neutral-50 p-4 text-xs leading-5 text-neutral-600">
+              Contoh: durasi <strong>{{ dashboard.onboardingPriceForm.duration || 1 }}</strong> dengan tipe
+              <strong>{{ dashboard.compatiblePricingLabel.toLowerCase() }}</strong> berarti pelanggan membayar
+              <strong>{{ dashboard.formatCurrency(Number(dashboard.onboardingPriceForm.price || 0)) }}</strong>
+              untuk setiap paket durasi tersebut.
+            </div>
+
+            <AtomsAppButton type="submit" :disabled="dashboard.pricingSetupLoading || !dashboard.onboardingPriceProductOptions.length">
+              {{ dashboard.pricingSetupLoading ? 'Menyimpan harga...' : 'Simpan harga produk' }}
+            </AtomsAppButton>
+          </div>
+        </form>
+
+        <aside class="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-0">
+          <div class="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
+            <span class="grid h-9 w-9 place-items-center rounded-md bg-primary-50 text-primary-700">
+              <Tags :size="18" />
+            </span>
+            <div>
+              <h4 class="text-sm font-bold text-neutral-900">Harga tersimpan</h4>
+              <p class="mt-0.5 text-xs text-neutral-500">{{ dashboard.pricing.prices.length }} tarif pada cabang aktif</p>
+            </div>
+          </div>
+
+          <div v-if="dashboard.pricing.loading && !dashboard.pricing.prices.length" class="grid min-h-48 place-items-center p-5 text-sm text-neutral-500">
+            Memuat harga...
+          </div>
+          <div v-else-if="!dashboard.pricing.prices.length" class="grid min-h-48 place-items-center p-5 text-center">
+            <div>
+              <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-neutral-100 text-neutral-500">
+                <Banknote :size="20" />
+              </span>
+              <p class="mt-3 text-sm font-semibold text-neutral-900">Belum ada harga aktif</p>
+              <p class="mt-1 text-xs leading-5 text-neutral-500">Pilih produk dan masukkan tarif pertamanya.</p>
+            </div>
+          </div>
+          <div v-else class="max-h-[360px] divide-y divide-neutral-200 overflow-y-auto">
+            <article v-for="price in dashboard.pricing.prices" :key="price.id" class="px-5 py-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-neutral-900">
+                    {{ price.product?.name || dashboard.products.products.find((product) => product.id === price.product_id)?.name || `Produk #${price.product_id}` }}
+                  </p>
+                  <p class="mt-1 text-xs capitalize text-neutral-500">
+                    {{ price.pricing_type === 'hourly' ? 'Per jam' : price.pricing_type === 'daily' ? 'Per hari' : price.pricing_type === 'event' ? 'Per sesi' : price.pricing_type }}
+                    · durasi {{ price.duration }}
+                  </p>
+                </div>
+                <span :class="['shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold', price.is_active ? 'bg-primary-50 text-primary-700' : 'bg-neutral-100 text-neutral-500']">
+                  {{ price.is_active ? 'Aktif' : 'Nonaktif' }}
+                </span>
+              </div>
+              <p class="mt-3 text-lg font-bold text-neutral-900">{{ dashboard.formatCurrency(Number(price.price)) }}</p>
+            </article>
+          </div>
+        </aside>
+      </div>
+
+      <div class="mt-5 flex items-start gap-2 rounded-md border border-primary-100 bg-primary-50 p-4 text-xs leading-5 text-primary-800">
+        <CheckCircle2 :size="16" class="mt-0.5 shrink-0" />
+        Setelah minimal satu harga kompatibel tersimpan, tekan “Verifikasi & lanjutkan” untuk meminta backend memvalidasi tahap pricing.
       </div>
     </MoleculesFormSection>
 

@@ -2,11 +2,13 @@ import type {
   BookingOnboardingPayload,
   BusinessOnboardingPayload,
   PaymentsOnboardingPayload,
+  PricingType,
   RegisterPayload,
   RentalOnboardingPayload,
 } from '~/domain/mitra'
 import type { CategoryPayload, ProductPayload } from '~/domain/product'
 import type { ProductUnitCreatePayload, StockAdjustmentPayload } from '~/domain/inventory'
+import type { ProductPricePayload } from '~/domain/pricing'
 import { ApiRequestError } from '~/domain/api'
 
 type OnboardingStepKey = 'business' | 'rental' | 'inventory' | 'pricing' | 'booking' | 'payment' | 'review'
@@ -22,6 +24,7 @@ export function useMitraDashboard() {
   const products = useProductStore()
   const bookings = useBookingStore()
   const inventory = useInventoryStore()
+  const pricing = usePricingStore()
   const users = useUserStore()
 
   const activeAuthTab = ref<'login' | 'register'>('login')
@@ -183,6 +186,29 @@ export function useMitraDashboard() {
     description: '',
   })
 
+  const onboardingPriceForm = reactive({
+    product_id: null as number | null,
+    duration: 1,
+    price: 0,
+  })
+
+  const compatiblePricingType = computed<PricingType>(() => {
+    if (rentalForm.rental_model === 'per_hour') return 'hourly'
+    if (rentalForm.rental_model === 'session') return 'event'
+    return 'daily'
+  })
+  const onboardingPriceProductOptions = computed(() =>
+    products.products
+      .filter((product) => product.is_active)
+      .map((product) => ({ label: `${product.name} · ${product.sku}`, value: product.id as number | null })),
+  )
+  const compatiblePricingLabel = computed(() => ({
+    hourly: 'Per jam',
+    daily: 'Per hari',
+    event: 'Per sesi / acara',
+  }[compatiblePricingType.value] || compatiblePricingType.value))
+  const pricingSetupLoading = computed(() => pricing.loading || pricing.saving || products.loadingProducts || products.saving)
+
   const inventoryCategoryOptions = computed(() => [
     ...(!products.categories.length
       ? [{ label: 'Belum ada kategori', value: null as number | null }]
@@ -222,7 +248,7 @@ export function useMitraDashboard() {
 
   const errorMessage = computed(() =>
     auth.isAuthenticated
-      ? billing.error || auth.error || branches.error || onboarding.error || products.error || inventory.error || operations.error
+      ? billing.error || auth.error || branches.error || onboarding.error || products.error || inventory.error || pricing.error || operations.error
       : auth.error || catalog.error,
   )
 
@@ -595,6 +621,98 @@ export function useMitraDashboard() {
     }
   }
 
+  function currentOnboardingPrice() {
+    return pricing.prices.find((item) =>
+      item.product_id === onboardingPriceForm.product_id
+      && item.pricing_type === compatiblePricingType.value,
+    ) || null
+  }
+
+  function hydrateOnboardingPriceForm() {
+    const existing = currentOnboardingPrice()
+    onboardingPriceForm.duration = Number(existing?.duration || 1)
+    onboardingPriceForm.price = Number(existing?.price || 0)
+  }
+
+  async function loadOnboardingPricingData() {
+    const results = await Promise.allSettled([
+      products.fetchProducts({ is_active: true, per_page: 100 }),
+      pricing.fetchPrices(),
+    ])
+
+    if (!onboardingPriceForm.product_id && products.products[0]) {
+      onboardingPriceForm.product_id = products.products[0].id
+    }
+    hydrateOnboardingPriceForm()
+
+    const failure = results.find((result) => result.status === 'rejected')
+    if (failure?.status === 'rejected') throw failure.reason
+  }
+
+  async function submitOnboardingPrice() {
+    successMessage.value = ''
+    const product = products.products.find((item) => item.id === onboardingPriceForm.product_id)
+    const duration = Number(onboardingPriceForm.duration)
+    const amount = Number(onboardingPriceForm.price)
+
+    if (!product) {
+      pricing.error = 'Pilih produk yang akan diberi harga.'
+      return false
+    }
+    if (!Number.isInteger(duration) || duration < 1) {
+      pricing.error = 'Durasi harga harus berupa bilangan minimal 1.'
+      return false
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      pricing.error = 'Nominal harga harus lebih besar dari 0.'
+      return false
+    }
+
+    pricing.error = ''
+    const payload: ProductPricePayload = {
+      product_id: product.id,
+      pricing_type: compatiblePricingType.value,
+      duration,
+      price: amount,
+      start_at: null,
+      end_at: null,
+      is_active: true,
+    }
+
+    try {
+      if (product.default_pricing_type !== compatiblePricingType.value) {
+        const productPayload: ProductPayload = {
+          category_id: product.category_id,
+          name: product.name,
+          slug: product.slug,
+          sku: product.sku,
+          brand: product.brand || null,
+          model: product.model || null,
+          description: product.description || null,
+          inventory_type: product.inventory_type,
+          default_pricing_type: compatiblePricingType.value,
+          minimum_rental_duration: Number(product.minimum_rental_duration || 1),
+          deposit_amount: Number(product.deposit_amount || 0),
+          late_fee_amount: Number(product.late_fee_amount || 0),
+          is_featured: product.is_featured,
+          is_active: product.is_active,
+        }
+        await products.saveProduct(productPayload, product.id)
+      }
+
+      const existing = currentOnboardingPrice()
+      await pricing.savePrice(payload, existing?.id)
+      await Promise.all([
+        pricing.fetchPrices(),
+        products.fetchProducts({ is_active: true, per_page: 100 }),
+      ])
+      successMessage.value = `Harga ${product.name} berhasil ${existing ? 'diperbarui' : 'ditambahkan'}.`
+      return true
+    } catch {
+      return false
+    }
+  }
+
   function handleSubscriptionError(event: Event) {
     const code = (event as CustomEvent<{ code?: string }>).detail?.code
     if (code === 'SUBSCRIPTION_REQUIRED' || code === 'SUBSCRIPTION_EXPIRED') {
@@ -772,6 +890,7 @@ export function useMitraDashboard() {
       products.reset()
       bookings.reset()
       inventory.reset()
+      pricing.reset()
       users.reset()
       await refreshTenantData(false)
       successMessage.value = `Workspace ${auth.session?.tenant.name || 'aktif'} sedang digunakan.`
@@ -789,6 +908,7 @@ export function useMitraDashboard() {
     products.reset()
     bookings.reset()
     inventory.reset()
+    pricing.reset()
     users.reset()
     successMessage.value = ''
     requiresBillingRecovery.value = false
@@ -851,7 +971,13 @@ export function useMitraDashboard() {
 
   watch(selectedOnboardingStep, (step) => {
     if (step === 'inventory') loadOnboardingInventoryData().catch(() => undefined)
+    if (step === 'pricing') loadOnboardingPricingData().catch(() => undefined)
   })
+
+  watch(
+    () => [onboardingPriceForm.product_id, compatiblePricingType.value],
+    hydrateOnboardingPriceForm,
+  )
 
   onMounted(() => window.addEventListener('sewantara:subscription-error', handleSubscriptionError))
   onUnmounted(() => window.removeEventListener('sewantara:subscription-error', handleSubscriptionError))
@@ -875,6 +1001,10 @@ export function useMitraDashboard() {
     inventorySetupLoading,
     suggestedInventoryCategoryName,
     inventory,
+    onboardingPriceForm,
+    onboardingPriceProductOptions,
+    compatiblePricingLabel,
+    compatiblePricingType,
     isInitialized,
     loginForm,
     metricCards,
@@ -883,6 +1013,8 @@ export function useMitraDashboard() {
     onboardingSteps,
     operations,
     paymentsForm,
+    pricing,
+    pricingSetupLoading,
     products,
     registerForm,
     registrationBillingChoice,
@@ -913,6 +1045,7 @@ export function useMitraDashboard() {
     createOnboardingCategory,
     openInventoryCategoryModal,
     submitOnboardingProduct,
+    submitOnboardingPrice,
     selectOnboardingStep,
     switchTenant,
     switchBranch,
