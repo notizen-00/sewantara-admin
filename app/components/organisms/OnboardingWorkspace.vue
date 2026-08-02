@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Boxes, CheckCircle2, PackagePlus } from '@lucide/vue'
+import { Boxes, CheckCircle2, Layers3, PackagePlus, Plus, X } from '@lucide/vue'
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
 
 defineProps<{
@@ -166,18 +166,21 @@ const operatingDays = [
           </div>
 
           <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-            <AtomsAppSelect
-              v-model="dashboard.inventoryProductForm.category_id"
-              label="Kategori"
-              :options="dashboard.inventoryCategoryOptions"
-            />
-            <AtomsAppInput
-              v-if="dashboard.inventoryProductForm.category_id === null"
-              v-model="dashboard.inventoryProductForm.new_category_name"
-              label="Nama kategori baru"
-              placeholder="Contoh: Kamera"
-              required
-            />
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+              <AtomsAppSelect
+                v-model="dashboard.inventoryProductForm.category_id"
+                label="Kategori"
+                :options="dashboard.inventoryCategoryOptions"
+              />
+              <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-3 text-sm font-semibold text-primary-700 transition hover:border-primary-600"
+                @click="dashboard.openInventoryCategoryModal"
+              >
+                <Plus :size="16" />
+                <span class="max-sm:sr-only">Buat</span>
+              </button>
+            </div>
             <AtomsAppInput
               v-model="dashboard.inventoryProductForm.name"
               label="Nama produk"
@@ -417,5 +420,83 @@ const operatingDays = [
         </div>
       </div>
     </MoleculesFormSection>
+
+    <Teleport to="body">
+      <div
+        v-if="dashboard.inventoryCategoryModalOpen"
+        class="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-neutral-900/50 p-4 backdrop-blur-[2px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-category-title"
+        @click.self="dashboard.closeInventoryCategoryModal"
+      >
+        <form
+          class="w-full max-w-lg overflow-hidden rounded-lg border border-neutral-200 bg-neutral-0 shadow-xl"
+          @submit.prevent="dashboard.createOnboardingCategory"
+        >
+          <div class="flex items-start justify-between gap-4 border-b border-neutral-200 px-6 py-5 max-sm:px-4">
+            <div class="flex items-start gap-3">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-700">
+                <Layers3 :size="19" />
+              </span>
+              <div>
+                <h2 id="onboarding-category-title" class="text-lg font-bold text-neutral-900">Buat kategori produk</h2>
+                <p class="mt-1 text-xs leading-5 text-neutral-500">Kategori membantu produk tersusun sesuai jenis bisnis tenant.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Tutup modal"
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+              :disabled="dashboard.products.saving"
+              @click="dashboard.closeInventoryCategoryModal"
+            >
+              <X :size="18" />
+            </button>
+          </div>
+
+          <div class="grid gap-5 px-6 py-5 max-sm:px-4">
+            <div class="rounded-md border border-primary-100 bg-primary-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary-700">Rekomendasi template bisnis</p>
+              <p class="mt-1 text-sm text-primary-800">
+                Kategori awal yang disarankan: <strong>{{ dashboard.suggestedInventoryCategoryName }}</strong>
+              </p>
+            </div>
+
+            <AtomsAppInput
+              v-model="dashboard.inventoryCategoryForm.name"
+              label="Nama kategori"
+              :placeholder="dashboard.suggestedInventoryCategoryName"
+              required
+              :maxlength="100"
+            />
+
+            <label class="grid gap-2 text-sm font-medium text-neutral-700">
+              Deskripsi kategori
+              <textarea
+                v-model="dashboard.inventoryCategoryForm.description"
+                rows="3"
+                maxlength="500"
+                placeholder="Contoh: Seluruh armada mobil yang tersedia untuk disewa."
+                class="w-full resize-y rounded-md border border-neutral-200 bg-neutral-0 px-3 py-2 text-neutral-900 outline-none transition placeholder:text-neutral-500 focus:border-primary-600 focus:ring-4 focus:ring-primary-100"
+              ></textarea>
+            </label>
+
+            <p v-if="dashboard.products.error" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger-500">
+              {{ dashboard.products.error }}
+            </p>
+          </div>
+
+          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-200 bg-neutral-50 px-6 py-4 max-sm:px-4">
+            <AtomsAppButton type="button" variant="secondary" :disabled="dashboard.products.saving" @click="dashboard.closeInventoryCategoryModal">
+              Batal
+            </AtomsAppButton>
+            <AtomsAppButton type="submit" :disabled="dashboard.products.saving">
+              {{ dashboard.products.saving ? 'Menyimpan...' : 'Buat kategori' }}
+            </AtomsAppButton>
+          </div>
+        </form>
+      </div>
+    </Teleport>
   </section>
 </template>

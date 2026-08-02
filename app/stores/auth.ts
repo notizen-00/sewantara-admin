@@ -10,12 +10,14 @@ const storageKeys = {
   token: 'sewantara.access_token',
   tenant: 'sewantara.tenant_id',
   branch: 'sewantara.branch_id',
+  businessType: 'sewantara.business_type',
 }
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref('')
   const tenantId = ref('')
   const branchId = ref('1')
+  const businessType = ref('')
   const session = ref<TenantSession | null>(null)
   const registeredTenant = ref<RegisterResult | null>(null)
   const loading = ref(false)
@@ -44,6 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (accessToken.value) localStorage.setItem(storageKeys.token, accessToken.value)
     if (tenantId.value) localStorage.setItem(storageKeys.tenant, tenantId.value)
     if (branchId.value) localStorage.setItem(storageKeys.branch, branchId.value)
+    if (businessType.value) localStorage.setItem(storageKeys.businessType, businessType.value)
   }
 
   function setTenantContext(nextTenantId: string, nextBranchId: string | number) {
@@ -70,12 +73,14 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = localStorage.getItem(storageKeys.token) || ''
     tenantId.value = localStorage.getItem(storageKeys.tenant) || ''
     branchId.value = localStorage.getItem(storageKeys.branch) || '1'
+    businessType.value = localStorage.getItem(storageKeys.businessType) || ''
   }
 
   function clearSession() {
     accessToken.value = ''
     tenantId.value = ''
     branchId.value = '1'
+    businessType.value = ''
     session.value = null
     clearPersisted()
   }
@@ -88,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await useAuthRepository().register(payload)
       registeredTenant.value = response.data
       tenantId.value = response.data.tenant.id
+      businessType.value = payload.business_type
       persist()
       return response.data
     } catch (err) {
@@ -124,6 +130,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await useAuthRepository().me()
       session.value = response.data
+      businessType.value = response.data.tenant.business_type || businessType.value
       branchId.value = String(response.data.branch.id)
       persist()
     } catch (err) {
@@ -203,6 +210,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken,
     tenantId,
     branchId,
+    businessType,
     session,
     registeredTenant,
     subscription,

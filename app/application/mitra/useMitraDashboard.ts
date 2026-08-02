@@ -160,7 +160,6 @@ export function useMitraDashboard() {
 
   const inventoryProductForm = reactive({
     category_id: null as number | null,
-    new_category_name: '',
     name: '',
     slug: '',
     sku: '',
@@ -178,12 +177,41 @@ export function useMitraDashboard() {
     purchase_price: 0,
   })
 
+  const inventoryCategoryModalOpen = ref(false)
+  const inventoryCategoryForm = reactive({
+    name: '',
+    description: '',
+  })
+
   const inventoryCategoryOptions = computed(() => [
-    { label: '+ Buat kategori baru', value: null as number | null },
+    ...(!products.categories.length
+      ? [{ label: 'Belum ada kategori', value: null as number | null }]
+      : []),
     ...products.categories
       .filter((category) => category.is_active)
       .map((category) => ({ label: category.name, value: category.id as number | null })),
   ])
+  const suggestedInventoryCategoryName = computed(() => {
+    const templateCode = (auth.businessType || registerForm.business_type || '').toLowerCase()
+    const matchedTemplate = catalog.templates.find((template) => template.code === templateCode)
+    const suggestions: Array<[RegExp, string]> = [
+      [/(car|mobil|vehicle)/, 'Mobil'],
+      [/(motor|motorcycle)/, 'Motor'],
+      [/(camera|kamera|photo)/, 'Kamera'],
+      [/(bike|bicycle|sepeda)/, 'Sepeda'],
+      [/(game|console|konsol)/, 'Konsol Game'],
+      [/(equipment|alat|tool)/, 'Peralatan'],
+      [/(event|party|pesta)/, 'Perlengkapan Acara'],
+    ]
+    const mapped = suggestions.find(([pattern]) => pattern.test(templateCode))?.[1]
+    if (mapped) return mapped
+
+    const templateName = matchedTemplate?.name
+      ?.replace(/\b(template|rental|penyewaan|bisnis)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    return templateName || 'Produk Rental'
+  })
   const inventorySetupLoading = computed(() =>
     products.loadingCategories
     || products.loadingProducts
@@ -415,6 +443,10 @@ export function useMitraDashboard() {
       inventoryProductForm.category_id = products.categories[0].id
     }
 
+    if (!products.categories.length && !inventoryCategoryModalOpen.value) {
+      openInventoryCategoryModal()
+    }
+
     const failure = results.find((result) => result.status === 'rejected')
     if (failure?.status === 'rejected') throw failure.reason
   }
@@ -422,7 +454,6 @@ export function useMitraDashboard() {
   function resetInventoryProductForm(categoryId: number | null = inventoryProductForm.category_id) {
     Object.assign(inventoryProductForm, {
       category_id: categoryId,
-      new_category_name: '',
       name: '',
       slug: '',
       sku: '',
@@ -441,6 +472,47 @@ export function useMitraDashboard() {
     })
   }
 
+  function openInventoryCategoryModal() {
+    products.error = ''
+    inventoryCategoryForm.name = suggestedInventoryCategoryName.value
+    inventoryCategoryForm.description = ''
+    inventoryCategoryModalOpen.value = true
+  }
+
+  function closeInventoryCategoryModal() {
+    if (products.saving) return
+    inventoryCategoryModalOpen.value = false
+  }
+
+  async function createOnboardingCategory() {
+    const name = inventoryCategoryForm.name.trim()
+    if (!name) {
+      products.error = 'Nama kategori wajib diisi.'
+      return false
+    }
+
+    products.error = ''
+    const payload: CategoryPayload = {
+      parent_id: null,
+      name,
+      slug: slugifyProduct(name),
+      description: inventoryCategoryForm.description.trim() || null,
+      sort_order: products.categories.length,
+      is_active: true,
+    }
+
+    try {
+      const category = await products.saveCategory(payload)
+      await products.fetchCategories({ is_active: true, per_page: 100 })
+      inventoryProductForm.category_id = category.id
+      inventoryCategoryModalOpen.value = false
+      successMessage.value = `Kategori ${category.name} berhasil dibuat.`
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async function submitOnboardingProduct() {
     successMessage.value = ''
     const productName = inventoryProductForm.name.trim()
@@ -451,8 +523,8 @@ export function useMitraDashboard() {
       products.error = 'Nama produk, slug, dan SKU wajib diisi.'
       return false
     }
-    if (!inventoryProductForm.category_id && !inventoryProductForm.new_category_name.trim()) {
-      products.error = 'Pilih kategori atau masukkan nama kategori baru.'
+    if (!inventoryProductForm.category_id) {
+      products.error = 'Buat atau pilih kategori produk terlebih dahulu.'
       return false
     }
     if (inventoryProductForm.inventory_type === 'serialized' && !inventoryProductForm.unit_code.trim()) {
@@ -469,19 +541,7 @@ export function useMitraDashboard() {
     inventory.error = ''
 
     try {
-      let categoryId = inventoryProductForm.category_id
-      if (!categoryId) {
-        const categoryName = inventoryProductForm.new_category_name.trim()
-        const categoryPayload: CategoryPayload = {
-          parent_id: null,
-          name: categoryName,
-          slug: slugifyProduct(categoryName),
-          description: null,
-          sort_order: 0,
-          is_active: true,
-        }
-        categoryId = (await products.saveCategory(categoryPayload)).id
-      }
+      const categoryId = inventoryProductForm.category_id
 
       const productPayload: ProductPayload = {
         category_id: categoryId,
@@ -809,8 +869,11 @@ export function useMitraDashboard() {
     errorMessage,
     formatCurrency,
     inventoryCategoryOptions,
+    inventoryCategoryForm,
+    inventoryCategoryModalOpen,
     inventoryProductForm,
     inventorySetupLoading,
+    suggestedInventoryCategoryName,
     inventory,
     isInitialized,
     loginForm,
@@ -846,6 +909,9 @@ export function useMitraDashboard() {
     continueSetup,
     savePayments,
     saveRental,
+    closeInventoryCategoryModal,
+    createOnboardingCategory,
+    openInventoryCategoryModal,
     submitOnboardingProduct,
     selectOnboardingStep,
     switchTenant,

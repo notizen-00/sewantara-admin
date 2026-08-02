@@ -36,6 +36,7 @@ export interface Tenant {
   id: string
   name: string
   slug?: string
+  business_type?: string
   status: TenantStatus
   timezone?: string
   currency?: string
