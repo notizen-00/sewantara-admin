@@ -1,6 +1,10 @@
 {
-  "name": "Sewantara",
+  "name": "Sewantara Mitra",
   "short_name": "Sewantara",
+  "description": "Dashboard mitra untuk mengelola operasional bisnis Sewantara.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/favicon_io/android-chrome-192x192.png",
@@ -14,6 +18,6 @@
     }
   ],
   "theme_color": "#e7194a",
-  "background_color": "#ffffff",
+  "background_color": "#fbf8f9",
   "display": "standalone"
 }
