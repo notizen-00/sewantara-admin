@@ -14,6 +14,7 @@ import {
   Eye,
   History,
   LayoutGrid,
+  List,
   LoaderCircle,
   Minus,
   PackageOpen,
@@ -45,6 +46,7 @@ defineEmits<{
 }>()
 
 const bookings = useBookingPresenter()
+const catalogView = ref<'grid' | 'list'>('grid')
 
 const statusClass = {
   success: 'bg-primary-50 text-primary-700',
@@ -89,35 +91,16 @@ watch(
 </script>
 
 <template>
-  <section v-if="bookings.createOpen" class="grid gap-5">
-    <header class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <button
-          type="button"
-          title="Kembali ke daftar booking"
-          :disabled="bookings.checkoutBusy || bookings.store.checkingAvailability"
-          class="grid h-11 w-11 place-items-center rounded-md border border-neutral-200 bg-neutral-0 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
-          @click="bookings.closeCreate"
-        >
-          <ArrowLeft :size="18" />
-        </button>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-bold text-neutral-900 sm:text-3xl">Kasir booking</h1>
-            <span class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-700">POS</span>
-          </div>
-          <p class="mt-1 text-sm text-neutral-500">
-            Pilih beberapa produk, atur jadwal, lalu selesaikan transaksi dalam satu layar.
-          </p>
-        </div>
-      </div>
-      <div class="rounded-md border border-neutral-200 bg-neutral-0 px-4 py-3 text-right shadow-card">
-        <p class="text-xs text-neutral-500">Cabang aktif</p>
-        <p class="mt-1 text-sm font-semibold text-neutral-900">
-          {{ bookings.auth.activeWorkspace.branchName || 'Cabang aktif' }}
-        </p>
-      </div>
-    </header>
+  <section v-if="bookings.createOpen" class="grid gap-3">
+    <button
+      type="button"
+      :disabled="bookings.checkoutBusy || bookings.store.checkingAvailability"
+      class="inline-flex min-h-9 w-fit items-center gap-2 rounded-md px-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-50"
+      @click="bookings.closeCreate"
+    >
+      <ArrowLeft :size="16" />
+      Daftar booking
+    </button>
 
     <div class="grid grid-cols-[minmax(0,1fr)_390px] items-start gap-4 max-xl:grid-cols-[minmax(0,1fr)_360px] max-lg:grid-cols-1">
       <section class="overflow-hidden rounded-md border border-neutral-200 bg-neutral-0 shadow-card">
@@ -132,9 +115,35 @@ watch(
                 <p class="mt-1 text-xs text-neutral-500">{{ bookings.filteredCatalogProducts.length }} produk tersedia pada katalog.</p>
               </div>
             </div>
-            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-              {{ bookings.cartQuantity }} item dipilih
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
+                {{ bookings.cartQuantity }} item dipilih
+              </span>
+              <div class="flex rounded-md border border-neutral-200 bg-neutral-50 p-1" aria-label="Tampilan katalog">
+                <button
+                  type="button"
+                  title="Tampilan grid"
+                  :class="[
+                    'grid h-8 w-8 place-items-center rounded text-neutral-500 transition',
+                    catalogView === 'grid' ? 'bg-neutral-0 text-primary-700 shadow-sm' : 'hover:text-neutral-900',
+                  ]"
+                  @click="catalogView = 'grid'"
+                >
+                  <LayoutGrid :size="16" />
+                </button>
+                <button
+                  type="button"
+                  title="Tampilan list"
+                  :class="[
+                    'grid h-8 w-8 place-items-center rounded text-neutral-500 transition',
+                    catalogView === 'list' ? 'bg-neutral-0 text-primary-700 shadow-sm' : 'hover:text-neutral-900',
+                  ]"
+                  @click="catalogView = 'list'"
+                >
+                  <List :size="17" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="mt-4 grid grid-cols-[minmax(220px,1fr)_230px] gap-3 max-sm:grid-cols-1">
@@ -175,16 +184,30 @@ watch(
             <p class="mt-2 text-sm text-neutral-500">Ubah kata pencarian atau kategori katalog.</p>
           </div>
         </div>
-        <div v-else class="grid grid-cols-3 gap-4 p-4 max-2xl:grid-cols-2 max-xl:grid-cols-2 max-sm:grid-cols-1 sm:p-5">
+        <div
+          v-else
+          :class="[
+            'grid p-3 sm:p-4',
+            catalogView === 'grid'
+              ? 'grid-cols-4 gap-3 max-2xl:grid-cols-3 max-xl:grid-cols-2 max-sm:grid-cols-1'
+              : 'grid-cols-1 gap-2',
+          ]"
+        >
           <article
             v-for="product in bookings.filteredCatalogProducts"
             :key="product.id"
             :class="[
-              'group overflow-hidden rounded-md border bg-neutral-0 transition hover:-translate-y-0.5 hover:shadow-card',
+              'group overflow-hidden rounded-md border bg-neutral-0 transition hover:shadow-card',
+              catalogView === 'list' ? 'flex items-stretch' : 'hover:-translate-y-0.5',
               bookings.cartQuantityFor(product.id) ? 'border-primary-600 ring-2 ring-primary-100' : 'border-neutral-200',
             ]"
           >
-            <div class="relative aspect-[4/3] overflow-hidden bg-neutral-50 p-1">
+            <div
+              :class="[
+                'relative shrink-0 overflow-hidden bg-neutral-50 p-1',
+                catalogView === 'grid' ? 'aspect-[16/10] w-full' : 'w-24 sm:w-28',
+              ]"
+            >
               <AtomsPrivateImage
                 v-if="bookings.productImage(product)"
                 :url="bookings.productImage(product)"
@@ -197,34 +220,45 @@ watch(
               </div>
               <span
                 v-if="bookings.cartQuantityFor(product.id)"
-                class="absolute right-3 top-3 grid h-7 min-w-7 place-items-center rounded-full bg-primary-600 px-2 text-xs font-bold text-white shadow-card"
+                class="absolute right-2 top-2 grid h-6 min-w-6 place-items-center rounded-full bg-primary-600 px-1.5 text-[10px] font-bold text-white shadow-card"
               >
                 {{ bookings.cartQuantityFor(product.id) }}
               </span>
             </div>
-            <div class="p-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-primary-700">
+            <div :class="['min-w-0 flex-1', catalogView === 'grid' ? 'p-3' : 'flex items-center gap-3 p-3']">
+              <div class="min-w-0 flex-1">
+              <p class="text-[10px] font-semibold uppercase tracking-wide text-primary-700">
                 {{ product.category?.name || 'Tanpa kategori' }}
               </p>
-              <h3 class="mt-1 line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-neutral-900">{{ product.name }}</h3>
-              <div class="mt-2 flex items-center justify-between gap-3 text-xs text-neutral-500">
-                <span>{{ product.sku }}</span>
+              <h3 :class="['mt-1 text-sm font-semibold leading-5 text-neutral-900', catalogView === 'grid' ? 'line-clamp-2 min-h-10' : 'truncate']">{{ product.name }}</h3>
+              <div class="mt-1.5 flex items-center justify-between gap-3 text-[11px] text-neutral-500">
+                <span class="truncate">{{ product.sku }}</span>
                 <span class="font-semibold text-neutral-700">{{ bookings.productRateLabel(product) }}</span>
+              </div>
               </div>
 
               <button
                 v-if="!bookings.cartQuantityFor(product.id)"
                 type="button"
-                class="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary-600 px-3 text-sm font-semibold text-white hover:bg-primary-700"
+                :class="[
+                  'inline-flex min-h-9 items-center justify-center rounded-md bg-primary-600 px-3 text-xs font-semibold text-white hover:bg-primary-700',
+                  catalogView === 'grid' ? 'mt-3 w-full' : 'w-auto shrink-0',
+                ]"
                 @click="bookings.addProduct(product)"
               >
                 <Plus :size="16" class="mr-2" />
                 Tambah
               </button>
-              <div v-else class="mt-4 grid grid-cols-[40px_1fr_40px] items-center overflow-hidden rounded-md border border-neutral-200">
+              <div
+                v-else
+                :class="[
+                  'grid grid-cols-[34px_36px_34px] items-center overflow-hidden rounded-md border border-neutral-200',
+                  catalogView === 'grid' ? 'mt-3 w-full' : 'shrink-0',
+                ]"
+              >
                 <button
                   type="button"
-                  class="grid h-10 place-items-center text-neutral-600 hover:bg-neutral-50"
+                  class="grid h-9 place-items-center text-neutral-600 hover:bg-neutral-50"
                   @click="bookings.updateProductQuantity(product.id, bookings.cartQuantityFor(product.id) - 1)"
                 >
                   <Minus :size="15" />
@@ -232,7 +266,7 @@ watch(
                 <strong class="text-center text-sm text-neutral-900">{{ bookings.cartQuantityFor(product.id) }}</strong>
                 <button
                   type="button"
-                  class="grid h-10 place-items-center text-primary-700 hover:bg-primary-50"
+                  class="grid h-9 place-items-center text-primary-700 hover:bg-primary-50"
                   @click="bookings.addProduct(product)"
                 >
                   <Plus :size="15" />
