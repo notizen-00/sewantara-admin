@@ -53,6 +53,17 @@ const statusClass = {
   warning: 'bg-amber-50 text-amber-700',
 }
 
+const checkoutPaymentOptions = [
+  { mode: 'unpaid' as const, label: 'Belum bayar', caption: 'Bayar nanti', icon: Clock3 },
+  { mode: 'full' as const, label: 'Lunas', caption: 'Bayar penuh', icon: Check },
+  { mode: 'deposit' as const, label: 'DP', caption: 'Bayar sebagian', icon: CreditCard },
+]
+
+const checkoutPaymentMethods = [
+  { value: 'cash' as const, label: 'Tunai', icon: Banknote },
+  { value: 'transfer' as const, label: 'Transfer', icon: CreditCard },
+]
+
 function productSummary(booking: Booking) {
   const names = (booking.items || []).map((item) => item.product?.name).filter(Boolean)
   if (names.length) return names.join(', ')
@@ -108,7 +119,7 @@ watch(
       </div>
     </header>
 
-    <div class="grid grid-cols-[minmax(0,1fr)_410px] items-start gap-5 max-xl:grid-cols-[minmax(0,1fr)_370px] max-lg:grid-cols-1">
+    <div class="grid grid-cols-[minmax(0,1fr)_390px] items-start gap-4 max-xl:grid-cols-[minmax(0,1fr)_360px] max-lg:grid-cols-1">
       <section class="overflow-hidden rounded-md border border-neutral-200 bg-neutral-0 shadow-card">
         <div class="border-b border-neutral-200 p-4 sm:p-5">
           <div class="flex items-start justify-between gap-4">
@@ -232,7 +243,7 @@ watch(
         </div>
       </section>
 
-      <aside class="sticky top-20 overflow-hidden rounded-md border border-neutral-200 bg-neutral-0 shadow-card max-lg:static">
+      <aside class="sticky top-20 flex max-h-[calc(100vh-96px)] flex-col overflow-hidden rounded-md border border-neutral-200 bg-neutral-0 shadow-card max-lg:static max-lg:max-h-none">
         <div class="flex items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
           <div class="flex items-center gap-3">
             <span class="grid h-9 w-9 place-items-center rounded-md bg-primary-50 text-primary-700">
@@ -245,7 +256,7 @@ watch(
           </div>
         </div>
 
-        <div class="max-h-[calc(100vh-210px)] overflow-y-auto max-lg:max-h-none">
+        <div class="min-h-0 flex-1 overflow-y-auto max-lg:max-h-none">
           <section class="grid gap-4 border-b border-neutral-200 p-5">
             <AtomsAppSelect
               v-model="bookings.form.customer_id"
@@ -348,142 +359,6 @@ watch(
             </div>
           </section>
 
-          <section class="border-b border-neutral-200 p-5">
-            <div class="mb-4 flex items-start justify-between gap-3">
-              <div class="flex items-start gap-3">
-                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary-50 text-primary-700">
-                  <Banknote :size="17" />
-                </span>
-                <div>
-                  <h3 class="text-sm font-semibold text-neutral-900">Pembayaran walk-in</h3>
-                  <p class="mt-1 text-xs leading-5 text-neutral-500">
-                    Catat pembayaran manual pelanggan langsung setelah booking dibuat.
-                  </p>
-                </div>
-              </div>
-              <span class="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
-                Kasir
-              </span>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                :disabled="bookings.checkoutBusy"
-                :class="[
-                  'rounded-md border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60',
-                  bookings.paymentForm.mode === 'unpaid'
-                    ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-100'
-                    : 'border-neutral-200 bg-neutral-0 hover:border-neutral-300 hover:bg-neutral-50',
-                ]"
-                @click="bookings.paymentForm.mode = 'unpaid'"
-              >
-                <Clock3
-                  :size="17"
-                  :class="bookings.paymentForm.mode === 'unpaid' ? 'text-primary-700' : 'text-neutral-400'"
-                />
-                <strong class="mt-2 block text-xs text-neutral-900">Belum bayar</strong>
-                <span class="mt-1 block text-[10px] leading-4 text-neutral-500">Bayar nanti</span>
-              </button>
-              <button
-                type="button"
-                :disabled="bookings.checkoutBusy"
-                :class="[
-                  'rounded-md border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60',
-                  bookings.paymentForm.mode === 'full'
-                    ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-100'
-                    : 'border-neutral-200 bg-neutral-0 hover:border-neutral-300 hover:bg-neutral-50',
-                ]"
-                @click="bookings.paymentForm.mode = 'full'"
-              >
-                <Check
-                  :size="17"
-                  :class="bookings.paymentForm.mode === 'full' ? 'text-primary-700' : 'text-neutral-400'"
-                />
-                <strong class="mt-2 block text-xs text-neutral-900">Lunas</strong>
-                <span class="mt-1 block text-[10px] leading-4 text-neutral-500">Bayar penuh</span>
-              </button>
-              <button
-                type="button"
-                :disabled="bookings.checkoutBusy"
-                :class="[
-                  'rounded-md border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60',
-                  bookings.paymentForm.mode === 'deposit'
-                    ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-100'
-                    : 'border-neutral-200 bg-neutral-0 hover:border-neutral-300 hover:bg-neutral-50',
-                ]"
-                @click="bookings.paymentForm.mode = 'deposit'"
-              >
-                <CreditCard
-                  :size="17"
-                  :class="bookings.paymentForm.mode === 'deposit' ? 'text-primary-700' : 'text-neutral-400'"
-                />
-                <strong class="mt-2 block text-xs text-neutral-900">DP</strong>
-                <span class="mt-1 block text-[10px] leading-4 text-neutral-500">Bayar sebagian</span>
-              </button>
-            </div>
-
-            <div v-if="bookings.paymentForm.mode !== 'unpaid'" class="mt-4 grid gap-4">
-              <div>
-                <p class="mb-2 text-xs font-semibold text-neutral-700">Metode penerimaan</p>
-                <div class="grid grid-cols-2 gap-2 rounded-md bg-neutral-100 p-1">
-                  <button
-                    type="button"
-                    :disabled="bookings.checkoutBusy"
-                    :class="[
-                      'inline-flex min-h-10 items-center justify-center rounded-md px-3 text-xs font-semibold transition disabled:opacity-60',
-                      bookings.paymentForm.method === 'cash'
-                        ? 'bg-neutral-0 text-primary-700 shadow-sm'
-                        : 'text-neutral-500 hover:text-neutral-900',
-                    ]"
-                    @click="bookings.paymentForm.method = 'cash'"
-                  >
-                    <Banknote :size="15" class="mr-2" />
-                    Tunai
-                  </button>
-                  <button
-                    type="button"
-                    :disabled="bookings.checkoutBusy"
-                    :class="[
-                      'inline-flex min-h-10 items-center justify-center rounded-md px-3 text-xs font-semibold transition disabled:opacity-60',
-                      bookings.paymentForm.method === 'transfer'
-                        ? 'bg-neutral-0 text-primary-700 shadow-sm'
-                        : 'text-neutral-500 hover:text-neutral-900',
-                    ]"
-                    @click="bookings.paymentForm.method = 'transfer'"
-                  >
-                    <CreditCard :size="15" class="mr-2" />
-                    Transfer
-                  </button>
-                </div>
-              </div>
-
-              <AtomsAppInput
-                v-if="bookings.paymentForm.mode === 'deposit'"
-                v-model="bookings.paymentForm.deposit_amount"
-                label="Nominal DP"
-                type="number"
-                inputmode="numeric"
-                :min="1"
-                :step="1000"
-                placeholder="Contoh: 100000"
-                required
-              />
-
-              <div class="rounded-md border border-primary-100 bg-primary-50 p-3 text-xs leading-5 text-primary-800">
-                <template v-if="bookings.paymentForm.mode === 'full'">
-                  Nominal lunas mengikuti total final yang dihitung backend setelah booking terbentuk.
-                </template>
-                <template v-else>
-                  DP dicatat sebagai pembayaran sebagian. Sisa tagihan tetap tersimpan pada booking.
-                </template>
-              </div>
-            </div>
-            <div v-else class="mt-4 rounded-md bg-neutral-50 p-3 text-xs leading-5 text-neutral-500">
-              Booking tetap tersimpan dan pelanggan dapat melakukan pembayaran di lain waktu.
-            </div>
-          </section>
-
           <section class="grid gap-4 p-5">
             <label class="grid gap-2 text-sm font-medium text-neutral-700">
               Catatan internal
@@ -552,25 +427,14 @@ watch(
               </div>
             </div>
 
-            <AtomsAppButton
-              :disabled="bookings.checkoutBusy"
-              @click="bookings.submit"
-            >
-              <LoaderCircle v-if="bookings.checkoutBusy" :size="16" class="mr-2 animate-spin" />
-              <BookOpenCheck v-else :size="16" class="mr-2" />
-              {{
-                bookings.store.recordingPayment
-                  ? 'Mencatat pembayaran...'
-                  : bookings.store.creating
-                    ? 'Membuat booking...'
-                    : bookings.paymentForm.mode === 'full'
-                      ? 'Buat booking & lunasi'
-                      : bookings.paymentForm.mode === 'deposit'
-                        ? 'Buat booking & catat DP'
-                        : 'Selesaikan booking'
-              }}
-            </AtomsAppButton>
           </section>
+        </div>
+
+        <div class="shrink-0 border-t border-neutral-200 bg-neutral-0 p-4 shadow-[0_-8px_24px_rgba(15,23,42,0.06)]">
+          <AtomsAppButton class="w-full" :disabled="bookings.checkoutBusy" @click="bookings.openCheckout">
+            <BookOpenCheck :size="16" class="mr-2" />
+            Selesaikan booking
+          </AtomsAppButton>
         </div>
       </aside>
     </div>
@@ -836,6 +700,135 @@ watch(
       </footer>
     </section>
   </section>
+
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="bookings.checkoutOpen" class="fixed inset-0 z-[85] grid place-items-center overflow-y-auto p-4 sm:p-6">
+        <button
+          type="button"
+          class="absolute inset-0 bg-neutral-950/55 backdrop-blur-sm"
+          aria-label="Tutup checkout"
+          @click="bookings.closeCheckout"
+        ></button>
+
+        <section class="relative z-10 w-full max-w-xl overflow-hidden rounded-xl bg-neutral-0 shadow-2xl">
+          <header class="flex items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-primary-700">Checkout</p>
+              <h2 class="mt-1 text-xl font-bold text-neutral-900">Selesaikan booking</h2>
+              <p class="mt-1 text-sm text-neutral-500">Pilih status pembayaran untuk transaksi ini.</p>
+            </div>
+            <button
+              type="button"
+              title="Tutup checkout"
+              :disabled="bookings.checkoutBusy"
+              class="grid h-10 w-10 shrink-0 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 disabled:opacity-50"
+              @click="bookings.closeCheckout"
+            >
+              <X :size="19" />
+            </button>
+          </header>
+
+          <div class="grid max-h-[calc(100vh-190px)] gap-5 overflow-y-auto p-5 sm:p-6">
+            <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+              <div class="flex items-end justify-between gap-4">
+                <div>
+                  <p class="text-xs font-medium text-neutral-500">Total perkiraan</p>
+                  <strong class="mt-1 block text-2xl font-bold text-neutral-900">
+                    {{ bookings.formatCurrency(bookings.estimatedPricing.total) }}
+                  </strong>
+                </div>
+                <div class="text-right text-xs text-neutral-500">
+                  <p>{{ bookings.cartQuantity }} item</p>
+                  <p class="mt-1">{{ bookings.estimatedRentalDuration }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p class="mb-3 text-sm font-semibold text-neutral-900">Status pembayaran</p>
+              <div class="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
+                <button
+                  v-for="option in checkoutPaymentOptions"
+                  :key="option.mode"
+                  type="button"
+                  :disabled="bookings.checkoutBusy"
+                  :class="[
+                    'rounded-lg border p-3 text-left transition disabled:opacity-60',
+                    bookings.paymentForm.mode === option.mode
+                      ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-100'
+                      : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50',
+                  ]"
+                  @click="bookings.paymentForm.mode = option.mode"
+                >
+                  <component :is="option.icon" :size="18" :class="bookings.paymentForm.mode === option.mode ? 'text-primary-700' : 'text-neutral-400'" />
+                  <strong class="mt-2 block text-sm text-neutral-900">{{ option.label }}</strong>
+                  <span class="mt-0.5 block text-xs text-neutral-500">{{ option.caption }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="bookings.paymentForm.mode !== 'unpaid'" class="grid gap-4">
+              <div>
+                <p class="mb-2 text-sm font-semibold text-neutral-900">Metode pembayaran</p>
+                <div class="grid grid-cols-2 gap-2 rounded-lg bg-neutral-100 p-1">
+                  <button
+                    v-for="method in checkoutPaymentMethods"
+                    :key="method.value"
+                    type="button"
+                    :disabled="bookings.checkoutBusy"
+                    :class="[
+                      'inline-flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-semibold transition disabled:opacity-60',
+                      bookings.paymentForm.method === method.value
+                        ? 'bg-neutral-0 text-primary-700 shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-900',
+                    ]"
+                    @click="bookings.paymentForm.method = method.value"
+                  >
+                    <component :is="method.icon" :size="16" class="mr-2" />
+                    {{ method.label }}
+                  </button>
+                </div>
+              </div>
+
+              <AtomsAppInput
+                v-if="bookings.paymentForm.mode === 'deposit'"
+                v-model="bookings.paymentForm.deposit_amount"
+                label="Nominal DP"
+                type="number"
+                inputmode="numeric"
+                :min="1"
+                :step="1"
+                placeholder="Masukkan nominal DP"
+                required
+              />
+            </div>
+          </div>
+
+          <footer class="flex flex-col-reverse gap-2 border-t border-neutral-200 bg-neutral-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+            <AtomsAppButton variant="ghost" :disabled="bookings.checkoutBusy" @click="bookings.closeCheckout">
+              Kembali
+            </AtomsAppButton>
+            <AtomsAppButton :disabled="bookings.checkoutBusy" @click="bookings.submit">
+              <LoaderCircle v-if="bookings.checkoutBusy" :size="16" class="mr-2 animate-spin" />
+              <BookOpenCheck v-else :size="16" class="mr-2" />
+              {{
+                bookings.store.recordingPayment
+                  ? 'Mencatat pembayaran...'
+                  : bookings.store.creating
+                    ? 'Membuat booking...'
+                    : bookings.paymentForm.mode === 'full'
+                      ? 'Buat booking & lunasi'
+                      : bookings.paymentForm.mode === 'deposit'
+                        ? 'Buat booking & catat DP'
+                        : 'Buat booking'
+              }}
+            </AtomsAppButton>
+          </footer>
+        </section>
+      </div>
+    </Transition>
+  </Teleport>
 
   <Teleport to="body">
     <Transition name="drawer">

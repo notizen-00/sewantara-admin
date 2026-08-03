@@ -68,6 +68,7 @@ export function useBookingPresenter() {
   const products = useProductStore()
   const snackbar = useSnackbarStore()
   const createOpen = ref(false)
+  const checkoutOpen = ref(false)
   const actionTarget = ref<BookingAction | null>(null)
   const initializedContext = ref('')
   const search = ref('')
@@ -289,6 +290,7 @@ export function useBookingPresenter() {
     catalogSearch.value = ''
     catalogCategoryId.value = null
     store.resetAvailability()
+    checkoutOpen.value = false
     createOpen.value = true
 
     if (!customerOptions.value.length) {
@@ -362,7 +364,23 @@ export function useBookingPresenter() {
   }
 
   function closeCreate() {
-    if (!checkoutBusy.value && !store.checkingAvailability) createOpen.value = false
+    if (!checkoutBusy.value && !store.checkingAvailability) {
+      checkoutOpen.value = false
+      createOpen.value = false
+    }
+  }
+
+  function openCheckout() {
+    if (!form.customer_id) {
+      snackbar.warning('Pelanggan wajib dipilih sebelum menyelesaikan booking.')
+      return
+    }
+    if (!validateSchedule()) return
+    checkoutOpen.value = true
+  }
+
+  function closeCheckout() {
+    if (!checkoutBusy.value) checkoutOpen.value = false
   }
 
   function validateSchedule() {
@@ -458,6 +476,7 @@ export function useBookingPresenter() {
       }
     }
 
+    checkoutOpen.value = false
     createOpen.value = false
 
     if (paymentError) {
@@ -770,6 +789,7 @@ export function useBookingPresenter() {
     store,
     products,
     createOpen,
+    checkoutOpen,
     detailOpen,
     currentBooking,
     actionTarget,
@@ -810,6 +830,8 @@ export function useBookingPresenter() {
     cancelStatusAction,
     confirmStatusAction,
     closeCreate,
+    openCheckout,
+    closeCheckout,
     checkAvailability,
     submit,
     addProduct,

@@ -21,9 +21,12 @@ const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const activeSection = ref('overview')
 const bookingCreateRequest = ref(0)
+const sidebarVisuallyCollapsed = computed(() => sidebarCollapsed.value || activeSection.value === 'bookings')
+const useFullWidthContent = computed(() => activeSection.value === 'bookings')
 
 function selectSection(section: string) {
   activeSection.value = section
+  sidebarOpen.value = false
 }
 
 function requestBookingCreate() {
@@ -52,7 +55,7 @@ watch(activeSection, (section) => {
   <main class="min-h-screen bg-neutral-50 text-neutral-900">
     <OrganismsOperationsSidebar
       :open="sidebarOpen"
-      :collapsed="sidebarCollapsed"
+      :collapsed="sidebarVisuallyCollapsed"
       :tenant-name="tenantName"
       :tenant-id="tenantId"
       :active-workspace-name="activeWorkspaceName"
@@ -68,7 +71,7 @@ watch(activeSection, (section) => {
       :user-name="userName"
       :user-email="userEmail"
       :notification-count="0"
-      :sidebar-collapsed="sidebarCollapsed"
+      :sidebar-collapsed="sidebarVisuallyCollapsed"
       @menu="sidebarOpen = true"
       @logout="$emit('logout')"
       @select-branch="$emit('selectBranch', $event)"
@@ -79,13 +82,17 @@ watch(activeSection, (section) => {
     <div
       :class="[
         'min-h-screen pt-16 transition-[padding] duration-200',
-        sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64',
+        sidebarVisuallyCollapsed ? 'lg:pl-16' : 'lg:pl-64',
       ]"
     >
       <div
         :class="[
-          'mx-auto w-full px-4 py-6 transition-[max-width] duration-200 sm:px-6 lg:px-8 lg:py-8',
-          sidebarCollapsed ? 'max-w-[1760px]' : 'max-w-[1440px]',
+          'mx-auto w-full transition-[max-width,padding] duration-200',
+          useFullWidthContent
+            ? 'max-w-none px-3 py-4 sm:px-4 lg:px-5 lg:py-5'
+            : sidebarVisuallyCollapsed
+              ? 'max-w-[1760px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8'
+              : 'max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8',
         ]"
       >
         <slot
