@@ -7,8 +7,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost/api',
-      googleAuthUrl: process.env.NUXT_PUBLIC_GOOGLE_AUTH_URL || '',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost',
     },
   },
 })

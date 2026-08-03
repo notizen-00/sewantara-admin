@@ -9,13 +9,13 @@ import {
   Sparkles,
 } from '@lucide/vue'
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
+import { resolveApiBaseUrl } from '~/composables/useApiClient'
 
 defineProps<{
   dashboard: MitraDashboardPresenter
 }>()
 
 const config = useRuntimeConfig()
-const snackbar = useSnackbarStore()
 
 const benefits = [
   'Kelola cabang dan operasional dalam satu workspace',
@@ -26,16 +26,10 @@ const benefits = [
 function connectWithGoogle() {
   if (!process.client) return
 
-  const googleAuthUrl = String(config.public.googleAuthUrl || '').trim()
-  if (!googleAuthUrl) {
-    snackbar.info(
-      'Google Sign-In belum diaktifkan. Tambahkan NUXT_PUBLIC_GOOGLE_AUTH_URL pada konfigurasi aplikasi.',
-      'Konfigurasi diperlukan',
-    )
-    return
-  }
-
-  window.location.assign(googleAuthUrl)
+  const apiBaseUrl = resolveApiBaseUrl(config.public.apiBase)
+  const googleAuthUrl = new URL(`${apiBaseUrl}/central/auth/google/redirect`)
+  googleAuthUrl.searchParams.set('device_name', 'nuxt-web')
+  window.location.assign(googleAuthUrl.toString())
 }
 </script>
 
