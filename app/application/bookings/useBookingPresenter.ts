@@ -6,6 +6,7 @@ import type {
   BookingItem,
 } from '~/domain/booking'
 import type { Product } from '~/domain/product'
+import type { CustomerCreatePayload } from '~/domain/customer'
 
 type AvailabilityState = 'idle' | 'available' | 'unavailable'
 type BookingAction = 'cancel' | 'return'
@@ -27,6 +28,14 @@ interface PosPaymentFormState {
   mode: PosPaymentMode
   method: PosPaymentMethod
   deposit_amount: number | null
+}
+
+interface QuickCustomerFormState {
+  name: string
+  email: string
+  phone: string
+  whatsapp: string
+  address: string
 }
 
 function toLocalDateTimeInput(date: Date) {
@@ -58,6 +67,10 @@ function createPaymentForm(): PosPaymentFormState {
   }
 }
 
+function createQuickCustomerForm(): QuickCustomerFormState {
+  return { name: '', email: '', phone: '', whatsapp: '', address: '' }
+}
+
 function normalizeStatus(status: string) {
   return status.trim().toLowerCase().replace(/[\s-]+/g, '_')
 }
@@ -66,9 +79,11 @@ export function useBookingPresenter() {
   const auth = useAuthStore()
   const store = useBookingStore()
   const products = useProductStore()
+  const customerStore = useCustomerStore()
   const snackbar = useSnackbarStore()
   const createOpen = ref(false)
   const checkoutOpen = ref(false)
+  const customerCreateOpen = ref(false)
   const actionTarget = ref<BookingAction | null>(null)
   const initializedContext = ref('')
   const search = ref('')
@@ -78,6 +93,7 @@ export function useBookingPresenter() {
   const catalogCategoryId = ref<number | null>(null)
   const form = reactive<BookingFormState>(createBookingForm())
   const paymentForm = reactive<PosPaymentFormState>(createPaymentForm())
+  const customerForm = reactive<QuickCustomerFormState>(createQuickCustomerForm())
 
   const contextKey = computed(() => `${auth.tenantId}:${auth.branchId}`)
   const detailOpen = computed(() => Boolean(store.detail))
@@ -366,6 +382,7 @@ export function useBookingPresenter() {
   function closeCreate() {
     if (!checkoutBusy.value && !store.checkingAvailability) {
       checkoutOpen.value = false
+      customerCreateOpen.value = false
       createOpen.value = false
     }
   }
@@ -381,6 +398,49 @@ export function useBookingPresenter() {
 
   function closeCheckout() {
     if (!checkoutBusy.value) checkoutOpen.value = false
+  }
+
+  function openCustomerCreate() {
+    Object.assign(customerForm, createQuickCustomerForm())
+    customerCreateOpen.value = true
+  }
+
+  function closeCustomerCreate() {
+    if (!customerStore.creating) customerCreateOpen.value = false
+  }
+
+  async function submitCustomer() {
+    const name = customerForm.name.trim()
+    const email = customerForm.email.trim().toLowerCase()
+    const phone = customerForm.phone.trim()
+    const whatsapp = customerForm.whatsapp.trim()
+
+    if (!name) {
+      snackbar.warning('Nama pelanggan wajib diisi.')
+      return
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      snackbar.warning('Format email pelanggan belum valid.')
+      return
+    }
+
+    const payload: CustomerCreatePayload = {
+      name,
+      email: email || null,
+      phone: phone || null,
+      whatsapp: whatsapp || null,
+      address: customerForm.address.trim() || null,
+    }
+
+    try {
+      const customer = await customerStore.create(payload)
+      await store.fetchCustomers()
+      form.customer_id = customer.id
+      customerCreateOpen.value = false
+      snackbar.success(`Pelanggan ${customer.name} berhasil ditambahkan.`)
+    } catch (err) {
+      snackbar.error(err instanceof Error ? err.message : customerStore.error)
+    }
   }
 
   function validateSchedule() {
@@ -790,6 +850,7 @@ export function useBookingPresenter() {
     products,
     createOpen,
     checkoutOpen,
+    customerCreateOpen,
     detailOpen,
     currentBooking,
     actionTarget,
@@ -798,6 +859,8 @@ export function useBookingPresenter() {
     dateFilter,
     form,
     paymentForm,
+    customerForm,
+    customerStore,
     activeProducts,
     categoryOptions,
     filteredCatalogProducts,
@@ -832,6 +895,9 @@ export function useBookingPresenter() {
     closeCreate,
     openCheckout,
     closeCheckout,
+    openCustomerCreate,
+    closeCustomerCreate,
+    submitCustomer,
     checkAvailability,
     submit,
     addProduct,

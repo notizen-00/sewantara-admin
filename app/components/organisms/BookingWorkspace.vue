@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   Trash2,
   UserRound,
+  UserRoundPlus,
   X,
 } from '@lucide/vue'
 import type { Booking } from '~/domain/booking'
@@ -102,7 +103,7 @@ watch(
       Daftar booking
     </button>
 
-    <div class="grid grid-cols-[minmax(0,1fr)_390px] items-start gap-4 max-xl:grid-cols-[minmax(0,1fr)_360px] max-lg:grid-cols-1">
+    <div class="grid grid-cols-[minmax(0,1fr)_430px] items-start gap-4 max-xl:grid-cols-[minmax(0,1fr)_400px] max-lg:grid-cols-1">
       <section class="overflow-hidden rounded-md border border-neutral-200 bg-neutral-0 shadow-card">
         <div class="border-b border-neutral-200 p-4 sm:p-5">
           <div class="flex items-start justify-between gap-4">
@@ -292,10 +293,24 @@ watch(
 
         <div class="min-h-0 flex-1 overflow-y-auto max-lg:max-h-none">
           <section class="grid gap-4 border-b border-neutral-200 p-5">
+            <div class="flex items-center justify-between gap-3">
+              <label class="text-sm font-medium text-neutral-700">
+                Pelanggan <span class="text-danger-500">*</span>
+              </label>
+              <button
+                type="button"
+                class="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-primary-700 hover:bg-primary-50"
+                @click="bookings.openCustomerCreate"
+              >
+                <UserRoundPlus :size="15" />
+                Tambah pelanggan
+              </button>
+            </div>
             <AtomsAppSelect
               v-model="bookings.form.customer_id"
               label="Pelanggan"
               :options="bookings.customerOptions"
+              hide-label
               required
             />
             <p v-if="!bookings.customerOptions.length" class="rounded-md bg-amber-50 p-3 text-xs leading-5 text-amber-700">
@@ -405,31 +420,7 @@ watch(
               ></textarea>
             </label>
 
-            <div class="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50">
-              <div class="p-4">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <p class="text-xs font-medium text-neutral-500">Total biaya perkiraan</p>
-                    <strong class="mt-1 block text-2xl font-bold tracking-tight text-neutral-900">
-                      {{ bookings.formatCurrency(bookings.estimatedPricing.total) }}
-                    </strong>
-                  </div>
-                  <span class="rounded-full bg-neutral-0 px-2.5 py-1 text-[10px] font-semibold text-neutral-600 shadow-sm">
-                    {{ bookings.estimatedRentalDuration }}
-                  </span>
-                </div>
-                <p
-                  v-if="bookings.estimatedPricing.missingPrices"
-                  class="mt-3 text-xs leading-5 text-amber-700"
-                >
-                  {{ bookings.estimatedPricing.missingPrices }} produk belum memiliki harga aktif dan belum masuk estimasi.
-                </p>
-                <p v-else class="mt-3 text-xs leading-5 text-neutral-500">
-                  Berdasarkan harga aktif, durasi rental, dan jumlah item. Total final tetap mengikuti perhitungan backend.
-                </p>
-              </div>
-
-              <div class="flex items-center justify-between gap-3 border-t border-neutral-200 bg-neutral-0 px-4 py-2.5">
+            <div class="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3">
                 <span
                   :class="[
                     'text-[11px] font-medium',
@@ -459,7 +450,6 @@ watch(
                   {{ bookings.store.checkingAvailability ? 'Mengecek...' : 'Cek ketersediaan' }}
                 </button>
               </div>
-            </div>
 
           </section>
         </div>
@@ -734,6 +724,100 @@ watch(
       </footer>
     </section>
   </section>
+
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="bookings.customerCreateOpen" class="fixed inset-0 z-[90] grid place-items-center overflow-y-auto p-4 sm:p-6">
+        <button
+          type="button"
+          class="absolute inset-0 bg-neutral-950/55 backdrop-blur-sm"
+          aria-label="Tutup form pelanggan"
+          @click="bookings.closeCustomerCreate"
+        ></button>
+
+        <form
+          class="relative z-10 w-full max-w-2xl overflow-hidden rounded-xl bg-neutral-0 shadow-2xl"
+          @submit.prevent="bookings.submitCustomer"
+        >
+          <header class="flex items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-primary-700">Pelanggan</p>
+              <h2 class="mt-1 text-xl font-bold text-neutral-900">Tambah pelanggan</h2>
+              <p class="mt-1 text-sm text-neutral-500">Pelanggan baru langsung dipilih untuk booking ini.</p>
+            </div>
+            <button
+              type="button"
+              title="Tutup form pelanggan"
+              :disabled="bookings.customerStore.creating"
+              class="grid h-10 w-10 shrink-0 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 disabled:opacity-50"
+              @click="bookings.closeCustomerCreate"
+            >
+              <X :size="19" />
+            </button>
+          </header>
+
+          <div class="grid max-h-[calc(100vh-210px)] gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-6">
+            <div class="sm:col-span-2">
+              <AtomsAppInput
+                v-model="bookings.customerForm.name"
+                label="Nama lengkap"
+                placeholder="Nama pelanggan"
+                autocomplete="name"
+                :maxlength="150"
+                required
+              />
+            </div>
+            <AtomsAppInput
+              v-model="bookings.customerForm.phone"
+              label="Nomor telepon"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="0812 3456 7890"
+            />
+            <AtomsAppInput
+              v-model="bookings.customerForm.whatsapp"
+              label="Nomor WhatsApp"
+              type="tel"
+              inputmode="tel"
+              placeholder="0812 3456 7890"
+            />
+            <div class="sm:col-span-2">
+              <AtomsAppInput
+                v-model="bookings.customerForm.email"
+                label="Email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                placeholder="nama@email.com"
+              />
+            </div>
+            <label class="grid gap-2 text-sm font-medium text-neutral-700 sm:col-span-2">
+              Alamat
+              <textarea
+                v-model="bookings.customerForm.address"
+                rows="3"
+                maxlength="1000"
+                placeholder="Alamat pelanggan"
+                class="w-full resize-y rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-600 focus:ring-4 focus:ring-primary-100"
+              ></textarea>
+            </label>
+          </div>
+
+          <footer class="flex flex-col-reverse gap-2 border-t border-neutral-200 bg-neutral-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+            <AtomsAppButton variant="ghost" type="button" :disabled="bookings.customerStore.creating" @click="bookings.closeCustomerCreate">
+              Batal
+            </AtomsAppButton>
+            <AtomsAppButton type="submit" :disabled="bookings.customerStore.creating">
+              <LoaderCircle v-if="bookings.customerStore.creating" :size="16" class="mr-2 animate-spin" />
+              <UserRoundPlus v-else :size="16" class="mr-2" />
+              {{ bookings.customerStore.creating ? 'Menyimpan...' : 'Simpan pelanggan' }}
+            </AtomsAppButton>
+          </footer>
+        </form>
+      </div>
+    </Transition>
+  </Teleport>
 
   <Teleport to="body">
     <Transition name="modal">
