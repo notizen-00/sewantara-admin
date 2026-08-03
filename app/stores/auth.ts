@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type {
+  LoginResult,
   RegisterPayload,
   RegisterResult,
   TenantSession,
@@ -110,9 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await useAuthRepository().login(email, password)
-      accessToken.value = response.data.access_token
-      tenantId.value = response.data.user.tenant_id
-      persist()
+      applyLoginResult(response.data)
       await fetchSession()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login gagal.'
@@ -122,6 +121,30 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function loginWithGoogleCode(code: string) {
+    loading.value = true
+    error.value = ''
+
+    try {
+      const response = await useAuthRepository().exchangeGoogleCode(code)
+      applyLoginResult(response.data)
+      await fetchSession()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Login dengan Google gagal.'
+      clearSession()
+      error.value = message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function applyLoginResult(result: LoginResult) {
+    accessToken.value = result.access_token
+    tenantId.value = result.user.tenant_id
+    persist()
   }
 
   async function fetchSession() {
@@ -228,6 +251,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearSession,
     register,
     login,
+    loginWithGoogleCode,
     fetchSession,
     syncBranchId,
     switchTenant,

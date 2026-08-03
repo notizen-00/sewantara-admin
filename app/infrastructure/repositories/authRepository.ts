@@ -15,6 +15,11 @@ export function useAuthRepository() {
         method: 'POST',
         body: JSON.stringify({ email, password, device_name: 'mitra-dashboard' }),
       }),
+    exchangeGoogleCode: (code: string) =>
+      api.central<LoginResult>('/central/auth/google/exchange', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      }),
     me: () => api.tenant<TenantSession>('/me'),
     logout: () =>
       api.tenant<null>('/auth/logout', {
