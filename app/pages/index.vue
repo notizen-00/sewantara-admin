@@ -51,7 +51,7 @@ watch(
       </div>
       <MoleculesNoticeBanner
         tone="danger"
-        message="Akses operasional ditahan sampai subscription aktif. Kamu tetap bisa membuka checkout pembayaran di bawah ini."
+        message="Paket tidak aktif. Selesaikan pembayaran untuk melanjutkan."
       />
       <div class="mt-6">
         <OrganismsBillingWorkspace :show-back="false" />

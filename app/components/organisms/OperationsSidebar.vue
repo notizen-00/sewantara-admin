@@ -64,7 +64,7 @@ const navigationGroups = [
       { key: 'pricing', label: 'Harga', icon: Tags },
       { key: 'maintenance', label: 'Maintenance', icon: Wrench },
       { key: 'reports', label: 'Laporan', icon: BarChart3 },
-      { key: 'billing', label: 'Billing', icon: CreditCard },
+      { key: 'billing', label: 'Paket & Tagihan', icon: CreditCard },
     ],
   },
 ]

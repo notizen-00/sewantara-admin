@@ -136,7 +136,7 @@ const operatingDays = [
       v-else-if="dashboard.selectedOnboardingStep === 'inventory'"
       eyebrow="Tahap 3"
       title="Resource dan unit"
-      description="Tambahkan produk beserta unit atau stok awalnya. Data langsung disimpan ke cabang aktif melalui API tenant."
+      description="Tambahkan produk beserta unit atau stok awal untuk cabang aktif."
     >
       <div class="mb-6 grid grid-cols-3 gap-3 max-md:grid-cols-1">
         <div class="rounded-md border border-neutral-200 bg-neutral-50 p-4">
@@ -430,7 +430,7 @@ const operatingDays = [
 
       <div class="mt-5 flex items-start gap-2 rounded-md border border-primary-100 bg-primary-50 p-4 text-xs leading-5 text-primary-800">
         <CheckCircle2 :size="16" class="mt-0.5 shrink-0" />
-        Setelah minimal satu harga kompatibel tersimpan, tekan “Verifikasi & lanjutkan” untuk meminta backend memvalidasi tahap pricing.
+        Setelah harga tersimpan, tekan “Verifikasi & lanjutkan” untuk menyelesaikan tahap harga.
       </div>
     </MoleculesFormSection>
 
@@ -507,7 +507,7 @@ const operatingDays = [
       v-else
       eyebrow="Tahap 7"
       title="Review dan aktivasi"
-      description="Periksa checklist backend sebelum mengaktifkan workspace tenant."
+      description="Periksa seluruh kesiapan sebelum mengaktifkan workspace."
     >
       <div class="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
         <div

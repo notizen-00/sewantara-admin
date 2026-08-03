@@ -176,7 +176,7 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
             </span>
           </div>
           <p class="mt-1 text-sm text-neutral-500">
-            Jenis subscription: <strong class="font-semibold text-neutral-700">{{ subscription.type }}</strong>
+            Jenis paket: <strong class="font-semibold text-neutral-700">{{ subscription.type }}</strong>
           </p>
           <p class="mt-1 text-xs font-medium text-neutral-500">{{ subscription.priceLabel }}</p>
         </div>
@@ -187,14 +187,14 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
         </p>
         <p class="mt-1 text-sm font-semibold text-neutral-900">{{ subscription.validUntil }}</p>
         <p class="mt-1 text-[10px] font-medium text-neutral-400">
-          {{ subscription.checked ? 'Diperiksa melalui sesi tenant' : 'Sesi tenant belum dimuat' }}
+          {{ subscription.checked ? 'Status terbaru' : 'Memuat status' }}
         </p>
         <button
           type="button"
           class="mt-3 text-sm font-semibold text-primary-700 hover:text-primary-600"
           @click="$emit('navigate', 'billing')"
         >
-          {{ subscription.status === 'trial' ? 'Aktifkan sekarang' : 'Kelola billing' }}
+          {{ subscription.status === 'trial' ? 'Aktifkan sekarang' : 'Kelola paket' }}
         </button>
       </div>
       <div v-if="subscription.features.length" class="w-full border-t border-neutral-200 pt-4">

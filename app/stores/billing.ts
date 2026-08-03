@@ -56,7 +56,7 @@ export const useBillingStore = defineStore('billing', () => {
       rememberPayment(response.data.payment.id)
       return response.data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Checkout pembayaran gagal dibuat.'
+      error.value = err instanceof Error ? err.message : 'Pembayaran gagal dimulai.'
       throw err
     } finally {
       loading.value = false

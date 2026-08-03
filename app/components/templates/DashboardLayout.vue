@@ -53,7 +53,7 @@ defineEmits<{
     >
       <div>
         <p class="text-sm font-semibold text-neutral-700">Pengaturan onboarding</p>
-        <p class="text-xs text-neutral-500">Setiap tahap disimpan terpisah ke workspace tenant.</p>
+        <p class="text-xs text-neutral-500">Perubahan tersimpan pada setiap tahap.</p>
       </div>
       <div class="flex flex-wrap justify-end gap-3">
         <AtomsAppButton variant="ghost" type="button" :disabled="busy" @click="$emit('back')">Kembali</AtomsAppButton>

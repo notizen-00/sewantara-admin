@@ -82,8 +82,8 @@ onMounted(billing.fetchHistory)
         <ArrowLeft :size="16" />
         Kembali ke dashboard
       </button>
-      <h1 class="text-2xl font-bold text-neutral-900 sm:text-3xl">Billing & subscription</h1>
-      <p class="mt-2 text-sm text-neutral-500">Kelola paket dan aktifkan subscription melalui pembayaran aman Xendit.</p>
+      <h1 class="text-2xl font-bold text-neutral-900 sm:text-3xl">Paket & tagihan</h1>
+      <p class="mt-2 text-sm text-neutral-500">Kelola paket, pembayaran, dan masa aktif.</p>
     </header>
 
     <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)] gap-5 max-lg:grid-cols-1">
@@ -105,7 +105,7 @@ onMounted(billing.fetchHistory)
         </div>
 
         <div class="mt-6 border-y border-neutral-200 py-5">
-          <p class="text-sm text-neutral-500">Biaya subscription</p>
+          <p class="text-sm text-neutral-500">Biaya paket</p>
           <p class="mt-1 text-xl font-bold text-neutral-900">{{ priceLabel }}</p>
           <p v-if="isTrial && trialEndLabel" class="mt-2 flex items-center gap-2 text-sm font-medium text-amber-700">
             <Clock3 :size="16" /> Trial berlaku sampai {{ trialEndLabel }}
@@ -127,10 +127,10 @@ onMounted(billing.fetchHistory)
           <CreditCard :size="21" />
         </span>
         <h2 class="mt-4 text-lg font-bold text-neutral-900">
-          {{ isTrial ? 'Aktifkan sekarang' : 'Perpanjang subscription' }}
+          {{ isTrial ? 'Aktifkan paket' : 'Perpanjang paket' }}
         </h2>
         <p class="mt-2 text-sm leading-6 text-neutral-500">
-          Kamu akan diarahkan ke halaman pembayaran Xendit. Subscription baru aktif setelah pembayaran diverifikasi backend.
+          Selesaikan pembayaran untuk mengaktifkan periode berikutnya.
         </p>
 
         <div v-if="billing.error" class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-danger-500">
@@ -139,14 +139,14 @@ onMounted(billing.fetchHistory)
 
         <AtomsAppButton class="mt-5 w-full" :disabled="billing.loading || !plan" @click="payNow">
           <span class="flex items-center gap-2">
-            {{ billing.loading ? 'Membuat checkout...' : 'Bayar dengan Xendit' }}
+            {{ billing.loading ? 'Memproses...' : 'Bayar' }}
             <ExternalLink v-if="!billing.loading" :size="16" />
           </span>
         </AtomsAppButton>
 
         <p class="mt-4 flex items-start gap-2 text-xs leading-5 text-neutral-500">
           <ShieldCheck :size="16" class="mt-0.5 shrink-0 text-primary-700" />
-          Nominal berasal langsung dari backend. Sewantara tidak menyimpan detail metode pembayaranmu.
+          Pembayaran diproses melalui layanan pembayaran yang terlindungi.
         </p>
       </aside>
     </div>
@@ -159,7 +159,7 @@ onMounted(billing.fetchHistory)
           </span>
           <div>
             <h2 class="text-base font-bold text-neutral-900">Riwayat pembayaran</h2>
-            <p class="mt-0.5 text-xs text-neutral-500">Transaksi checkout yang dibuat dari perangkat ini.</p>
+            <p class="mt-0.5 text-xs text-neutral-500">Daftar transaksi pembayaran.</p>
           </div>
         </div>
         <button
@@ -183,7 +183,7 @@ onMounted(billing.fetchHistory)
             <CreditCard :size="20" />
           </span>
           <p class="mt-3 text-sm font-semibold text-neutral-900">Belum ada pembayaran</p>
-          <p class="mt-1 text-xs text-neutral-500">Transaksi baru akan muncul setelah checkout Xendit dibuat.</p>
+          <p class="mt-1 text-xs text-neutral-500">Transaksi pembayaran akan ditampilkan di sini.</p>
         </div>
       </div>
 
@@ -193,7 +193,6 @@ onMounted(billing.fetchHistory)
             <tr>
               <th class="px-5 py-3">Nomor pembayaran</th>
               <th class="px-5 py-3">Tanggal</th>
-              <th class="px-5 py-3">Metode</th>
               <th class="px-5 py-3 text-right">Nominal</th>
               <th class="px-5 py-3 text-right">Status</th>
             </tr>
@@ -202,10 +201,8 @@ onMounted(billing.fetchHistory)
             <tr v-for="item in billing.history" :key="item.id" class="hover:bg-neutral-50">
               <td class="px-5 py-4">
                 <strong class="block font-semibold text-neutral-900">{{ item.payment_number }}</strong>
-                <span class="mt-1 block max-w-[220px] truncate text-xs text-neutral-500">{{ item.gateway_reference || item.id }}</span>
               </td>
               <td class="whitespace-nowrap px-5 py-4 text-neutral-700">{{ formatPaymentDate(item.created_at) }}</td>
-              <td class="px-5 py-4 font-medium capitalize text-neutral-700">{{ item.gateway }}</td>
               <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-neutral-900">{{ formatAmount(item.amount, item.currency) }}</td>
               <td class="px-5 py-4 text-right">
                 <span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-bold', paymentStatus[item.status].class]">

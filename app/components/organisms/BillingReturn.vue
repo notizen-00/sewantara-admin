@@ -18,38 +18,38 @@ const displayState = computed(() => {
 
 const content = computed(() => ({
   paid: {
-    title: 'Subscription berhasil diaktifkan',
-    description: 'Pembayaran sudah diverifikasi dan status subscription telah diperbarui.',
+    title: 'Pembayaran berhasil',
+    description: 'Paket telah aktif.',
     icon: CheckCircle2,
     tone: 'text-primary-700 bg-primary-50',
   },
   pending: {
-    title: 'Memverifikasi pembayaran',
-    description: 'Kami menunggu konfirmasi resmi dari Xendit. Halaman ini akan diperbarui otomatis.',
+    title: 'Pembayaran diproses',
+    description: 'Status akan diperbarui otomatis.',
     icon: Clock3,
     tone: 'text-amber-700 bg-amber-50',
   },
   failed: {
     title: 'Pembayaran belum berhasil',
-    description: 'Payment Session tidak berhasil dibuat atau diproses. Silakan buat checkout baru.',
+    description: 'Transaksi tidak dapat diproses. Silakan bayar kembali.',
     icon: XCircle,
     tone: 'text-danger-500 bg-red-50',
   },
   expired: {
-    title: 'Sesi pembayaran kedaluwarsa',
-    description: 'Batas waktu checkout Xendit telah berakhir. Subscription belum berubah dan kamu bisa membuat pembayaran baru.',
+    title: 'Pembayaran kedaluwarsa',
+    description: 'Batas waktu pembayaran telah berakhir.',
     icon: XCircle,
     tone: 'text-neutral-700 bg-neutral-100',
   },
   cancel: {
     title: 'Pembayaran dibatalkan',
-    description: 'Tidak ada pembayaran yang dikonfirmasi. Trial yang masih berlaku tidak terpengaruh.',
+    description: 'Transaksi tidak dilanjutkan.',
     icon: AlertCircle,
     tone: 'text-neutral-700 bg-neutral-100',
   },
   unknown: {
-    title: 'Status pembayaran belum tersedia',
-    description: 'Kami tidak menemukan transaksi yang perlu diperiksa pada browser ini.',
+    title: 'Transaksi tidak ditemukan',
+    description: 'Buka halaman pembayaran dari akun yang digunakan saat transaksi.',
     icon: AlertCircle,
     tone: 'text-neutral-700 bg-neutral-100',
   },
@@ -120,7 +120,7 @@ onUnmounted(billing.stopPolling)
           Kembali ke dashboard
         </NuxtLink>
         <AtomsAppButton v-if="['failed', 'expired', 'cancel'].includes(displayState) && auth.isAuthenticated" variant="secondary" :disabled="billing.loading" @click="retryCheckout">
-          <span class="flex items-center gap-2"><CreditCard :size="16" />{{ billing.loading ? 'Membuat checkout...' : 'Coba bayar lagi' }}</span>
+          <span class="flex items-center gap-2"><CreditCard :size="16" />{{ billing.loading ? 'Memproses...' : 'Bayar lagi' }}</span>
         </AtomsAppButton>
         <AtomsAppButton v-if="displayState === 'pending' && initialized" variant="secondary" :disabled="billing.polling" @click="initialize">
           <span class="flex items-center gap-2"><RotateCw :size="16" />Periksa lagi</span>

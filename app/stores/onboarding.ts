@@ -26,7 +26,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       ['booking', 'Booking'],
       ['payment', 'Pembayaran'],
       ['branch', 'Cabang'],
-      ['subscription', 'Subscription'],
+      ['subscription', 'Paket'],
     ].map(([key, label]) => ({
       key,
       label,

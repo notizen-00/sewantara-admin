@@ -21,7 +21,7 @@ defineProps<{
           {{
             dashboard.activeAuthTab === 'login'
               ? 'Gunakan akun owner untuk mengakses workspace bisnis Anda.'
-              : 'Daftarkan bisnis, lalu pilih mulai trial atau langsung aktif dengan Xendit.'
+              : 'Daftarkan bisnis dan pilih waktu aktivasi paket.'
           }}
         </p>
       </div>
@@ -89,7 +89,7 @@ defineProps<{
               @click="dashboard.registrationBillingChoice = 'pay_now'"
             >
               <span class="text-sm font-bold text-neutral-900">Aktifkan sekarang</span>
-              <span class="mt-1 block text-xs leading-5 text-neutral-500">Setelah akun dibuat, lanjut ke pembayaran aman Xendit.</span>
+              <span class="mt-1 block text-xs leading-5 text-neutral-500">Aktifkan paket setelah pendaftaran selesai.</span>
             </button>
           </div>
         </fieldset>

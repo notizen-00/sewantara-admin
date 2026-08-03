@@ -132,7 +132,7 @@ export function useMitraDashboard() {
       active: 'Aktif',
       trial: 'Masa percobaan',
       expired: 'Kedaluwarsa',
-      inactive: 'Tidak ada subscription',
+      inactive: 'Paket tidak aktif',
       canceled: 'Dibatalkan',
     }
     const endDate = subscription?.is_on_trial
@@ -144,7 +144,7 @@ export function useMitraDashboard() {
       : 'Harga paket belum tersedia'
 
     return {
-      planName: plan?.name || 'Belum berlangganan',
+      planName: plan?.name || 'Belum ada paket',
       planSlug: plan?.slug || '',
       type,
       status: normalizedStatus,
@@ -728,7 +728,7 @@ export function useMitraDashboard() {
       businessForm.business_name = auth.session?.tenant.name || registerForm.business_name
 
       if (registrationBillingChoice.value === 'pay_now') {
-        successMessage.value = 'Akun berhasil dibuat. Mengarahkan ke pembayaran Xendit...'
+        successMessage.value = 'Akun berhasil dibuat. Membuka pembayaran...'
         await billing.redirectToCheckout()
         return
       }
