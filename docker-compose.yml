@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost/api}
+        NUXT_PUBLIC_GOOGLE_AUTH_URL: ${NUXT_PUBLIC_GOOGLE_AUTH_URL:-}
     image: sewantara-admin:latest
     container_name: sewantara-admin
     restart: unless-stopped
@@ -14,6 +15,7 @@ services:
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: 3005
       NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost/api}
+      NUXT_PUBLIC_GOOGLE_AUTH_URL: ${NUXT_PUBLIC_GOOGLE_AUTH_URL:-}
       TZ: ${TZ:-Asia/Jakarta}
     ports:
       - "${APP_BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-3005}:3005"

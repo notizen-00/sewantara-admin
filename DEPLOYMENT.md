@@ -31,6 +31,7 @@ Isi URL API publik:
 
 ```dotenv
 NUXT_PUBLIC_API_BASE=https://api.domain-anda.com/api
+NUXT_PUBLIC_GOOGLE_AUTH_URL=https://api.domain-anda.com/api/central/auth/google/redirect
 APP_BIND_ADDRESS=0.0.0.0
 APP_PORT=3005
 TZ=Asia/Jakarta
@@ -39,6 +40,10 @@ TZ=Asia/Jakarta
 `NUXT_PUBLIC_API_BASE` digunakan langsung oleh browser. Jangan memakai nama
 service Docker seperti `http://backend:8000` kecuali nama tersebut memang dapat
 diakses dari perangkat pengguna.
+
+`NUXT_PUBLIC_GOOGLE_AUTH_URL` harus mengarah ke endpoint backend yang memulai
+redirect OAuth Google. Jika belum diisi, tombol Google tetap ditampilkan dan
+akan memberi informasi bahwa koneksi belum dikonfigurasi.
 
 ## 3. Build dan jalankan container
 
