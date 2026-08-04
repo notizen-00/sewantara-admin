@@ -4,6 +4,35 @@ Panduan ini menggunakan Docker Compose dan Nginx atau Nginx Proxy Manager
 sebagai reverse proxy. Secara default port aplikasi di-bind ke `0.0.0.0`
 supaya dapat dijangkau reverse proxy yang berjalan di container lain.
 
+## 0. CI/CD (GitHub Actions)
+
+Workflow `.github/workflows/ci-cd.yml` menjalankan dua job:
+
+- **build** — pada setiap push dan pull request ke `master`: `npm ci` lalu
+  `npm run build`, untuk memastikan kode tidak rusak sebelum di-merge.
+- **deploy** — hanya pada push ke `master` (setelah job `build` sukses):
+  SSH ke VPS lalu menjalankan `git pull --ff-only` dan
+  `docker compose --env-file .env.production up -d --build`, persis seperti
+  langkah manual "Update aplikasi" di bawah.
+
+Job `deploy` menggunakan GitHub Environment bernama `production`. Aktifkan
+*required reviewers* pada environment tersebut (Settings → Environments) jika
+ingin ada persetujuan manual sebelum deploy jalan.
+
+Tambahkan secrets berikut di **Settings → Secrets and variables → Actions**:
+
+| Secret          | Keterangan                                              |
+| --------------- | -------------------------------------------------------- |
+| `VPS_HOST`      | IP atau hostname VPS                                     |
+| `VPS_USER`      | User SSH (harus tergabung di group `docker`)              |
+| `VPS_SSH_KEY`   | Private key SSH (format PEM, tanpa passphrase)            |
+| `VPS_PORT`      | Port SSH, opsional (default `22`)                         |
+| `VPS_APP_PATH`  | Path repo di VPS, mis. `/opt/sewantara-admin`              |
+
+Pastikan `.env.production` sudah ada di `VPS_APP_PATH` pada VPS (lihat langkah
+2 di bawah) sebelum workflow deploy pertama kali dijalankan — workflow tidak
+membuat file ini secara otomatis.
+
 ## 1. Persiapan VPS
 
 Contoh untuk Ubuntu:
