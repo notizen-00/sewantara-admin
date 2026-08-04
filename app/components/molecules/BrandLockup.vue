@@ -1,5 +1,7 @@
 <script setup lang="ts">
-withDefaults(
+import darkLogoUrl from '~/assets/images/favicon-dark.png'
+
+const props = withDefaults(
   defineProps<{
     tone?: 'light' | 'dark'
   }>(),
@@ -7,16 +9,37 @@ withDefaults(
     tone: 'light',
   },
 )
+
+const logoUrl = computed(() =>
+  props.tone === 'dark'
+    ? '/favicon_io/android-chrome-192x192.png'
+    : darkLogoUrl,
+)
 </script>
 
 <template>
   <div class="flex items-center gap-3">
-    <span class="grid h-9 w-9 place-items-center rounded-md bg-primary-600 text-sm font-black text-white">S</span>
+    <span
+      :class="[
+        'grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl',
+        tone === 'dark' ? 'bg-white/[0.06] ring-1 ring-white/10' : 'bg-neutral-100 ring-1 ring-neutral-200/70',
+      ]"
+    >
+      <img
+        :src="logoUrl"
+        alt=""
+        aria-hidden="true"
+        :class="[
+          'h-full w-full object-contain',
+          tone === 'dark' ? 'p-1' : 'translate-y-1 scale-[3.15]',
+        ]"
+      />
+    </span>
     <div>
-      <p :class="['text-[11px] font-semibold uppercase leading-none', tone === 'dark' ? 'text-primary-100' : 'text-neutral-500']">
+      <p :class="['text-[11px] font-bold uppercase leading-none tracking-[0.12em]', tone === 'dark' ? 'text-primary-100' : 'text-primary-600']">
         Sewantara
       </p>
-      <h1 :class="['text-base font-bold leading-tight', tone === 'dark' ? 'text-white' : 'text-neutral-900']">Admin</h1>
+      <p :class="['mt-1 text-sm font-bold leading-none tracking-[-0.01em]', tone === 'dark' ? 'text-white' : 'text-neutral-900']">Mitra</p>
     </div>
   </div>
 </template>

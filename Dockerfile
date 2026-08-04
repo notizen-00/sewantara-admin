@@ -9,7 +9,7 @@ RUN npm ci
 
 COPY . .
 
-ARG NUXT_PUBLIC_API_BASE=http://localhost/api
+ARG NUXT_PUBLIC_API_BASE=http://localhost
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 ENV NODE_ENV=production
 

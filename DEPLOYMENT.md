@@ -30,13 +30,14 @@ nano .env.production
 Isi URL API publik:
 
 ```dotenv
-NUXT_PUBLIC_API_BASE=https://api.domain-anda.com/api
+NUXT_PUBLIC_API_BASE=https://api.domain-anda.com
 APP_BIND_ADDRESS=0.0.0.0
 APP_PORT=3005
 TZ=Asia/Jakarta
 ```
 
-`NUXT_PUBLIC_API_BASE` digunakan langsung oleh browser. Jangan memakai nama
+`NUXT_PUBLIC_API_BASE` adalah origin API yang digunakan langsung oleh browser.
+Client akan menambahkan prefix `/api` pada seluruh request. Jangan memakai nama
 service Docker seperti `http://backend:8000` kecuali nama tersebut memang dapat
 diakses dari perangkat pengguna.
 

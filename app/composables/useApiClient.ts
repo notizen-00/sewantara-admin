@@ -9,6 +9,11 @@ const jsonHeaders = {
   'Content-Type': 'application/json',
 }
 
+export function resolveApiBaseUrl(value: unknown) {
+  const configuredUrl = String(value || '').replace(/\/+$/, '')
+  return configuredUrl.endsWith('/api') ? configuredUrl : `${configuredUrl}/api`
+}
+
 function buildHeaders(
   body: BodyInit | null | undefined,
   headers?: HeadersInit,
@@ -68,7 +73,7 @@ async function parseResponse<T>(response: Response): Promise<ApiResponse<T>> {
 
 export function useApiClient() {
   const config = useRuntimeConfig()
-  const baseUrl = String(config.public.apiBase).replace(/\/$/, '')
+  const baseUrl = resolveApiBaseUrl(config.public.apiBase)
 
   async function central<T>(path: string, options: RequestOptions = {}) {
     const { query, ...requestOptions } = options
