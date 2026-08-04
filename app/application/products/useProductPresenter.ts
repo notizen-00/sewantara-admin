@@ -1,4 +1,5 @@
-import type { InventoryType, PricingType } from '~/domain/mitra'
+import type { EngineCode, InventoryType, PricingType, ProductType } from '~/domain/mitra'
+import { ENGINE_LABELS, PRODUCT_TYPE_LABELS, PRODUCT_TYPES_BY_ENGINE } from '~/domain/mitra'
 import type {
   CategoryPayload,
   Product,
@@ -18,6 +19,8 @@ interface ProductFormState {
   brand: string
   model: string
   description: string
+  engine_code: EngineCode
+  product_type: ProductType
   inventory_type: InventoryType
   default_pricing_type: PricingType
   minimum_rental_duration: number
@@ -51,6 +54,8 @@ function createProductForm(): ProductFormState {
     brand: '',
     model: '',
     description: '',
+    engine_code: 'rental',
+    product_type: 'equipment',
     inventory_type: 'serialized',
     default_pricing_type: 'daily',
     minimum_rental_duration: 1,
@@ -85,6 +90,7 @@ function slugify(value: string) {
 export function useProductPresenter() {
   const auth = useAuthStore()
   const store = useProductStore()
+  const engines = useEngineStore()
   const snackbar = useSnackbarStore()
   const activeTab = ref<ProductTab>('products')
   const editor = ref<EditorType | null>(null)
@@ -142,6 +148,26 @@ export function useProductPresenter() {
       .filter((category) => category.id !== editingId.value)
       .map((category) => ({ label: category.name, value: category.id as number | null })),
   ])
+  const enabledEngineOptions = computed(() => {
+    const enabled = engines.catalog.filter((item) => item.is_enabled)
+    const codes = enabled.length ? enabled.map((item) => item.code) : (['rental', 'booking'] as EngineCode[])
+    return codes.map((code) => ({ label: ENGINE_LABELS[code], value: code }))
+  })
+  const productTypeOptions = computed(() =>
+    PRODUCT_TYPES_BY_ENGINE[productForm.engine_code].map((type) => ({
+      label: PRODUCT_TYPE_LABELS[type],
+      value: type,
+    })),
+  )
+
+  watch(
+    () => productForm.engine_code,
+    () => {
+      if (!PRODUCT_TYPES_BY_ENGINE[productForm.engine_code].includes(productForm.product_type)) {
+        productForm.product_type = PRODUCT_TYPES_BY_ENGINE[productForm.engine_code][0]
+      }
+    },
+  )
 
   function productQuery() {
     return {
@@ -177,6 +203,7 @@ export function useProductPresenter() {
     }
 
     const results = await Promise.allSettled([fetchCategories(false), fetchProducts(false)])
+    if (!engines.catalog.length) engines.fetchCatalog().catch(() => undefined)
     initializedContext.value = contextKey.value
 
     const failure = results.find((result) => result.status === 'rejected')
@@ -212,6 +239,8 @@ export function useProductPresenter() {
         brand: product.brand || '',
         model: product.model || '',
         description: product.description || '',
+        engine_code: product.engine_code,
+        product_type: product.product_type,
         inventory_type: product.inventory_type,
         default_pricing_type: product.default_pricing_type,
         minimum_rental_duration: Number(product.minimum_rental_duration || 1),
@@ -277,6 +306,11 @@ export function useProductPresenter() {
       return null
     }
 
+    if (!PRODUCT_TYPES_BY_ENGINE[productForm.engine_code].includes(productForm.product_type)) {
+      snackbar.warning('Jenis produk tidak sesuai dengan jenis layanan yang dipilih.')
+      return null
+    }
+
     return {
       category_id: productForm.category_id,
       name: productForm.name.trim(),
@@ -285,6 +319,8 @@ export function useProductPresenter() {
       brand: productForm.brand.trim() || null,
       model: productForm.model.trim() || null,
       description: productForm.description.trim() || null,
+      engine_code: productForm.engine_code,
+      product_type: productForm.product_type,
       inventory_type: productForm.inventory_type,
       default_pricing_type: productForm.default_pricing_type,
       minimum_rental_duration: Number(productForm.minimum_rental_duration),
@@ -515,6 +551,8 @@ export function useProductPresenter() {
     filteredCategories,
     categoryOptions,
     parentCategoryOptions,
+    enabledEngineOptions,
+    productTypeOptions,
     activeProducts,
     featuredProducts,
     serializedProducts,

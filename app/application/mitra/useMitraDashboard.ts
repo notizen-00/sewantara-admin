@@ -72,6 +72,7 @@ export function useMitraDashboard() {
   })
 
   const rentalForm = reactive<RentalOnboardingPayload>({
+    engine_code: 'rental',
     rental_model: 'per_day',
     booking_strategy: 'date_range',
     allocation_strategy: 'auto_assign',
@@ -82,6 +83,7 @@ export function useMitraDashboard() {
   })
 
   const bookingForm = reactive<BookingOnboardingPayload>({
+    engine_code: 'booking',
     allow_online_booking: true,
     allow_walk_in: true,
     enable_waiting_list: false,

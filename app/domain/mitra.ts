@@ -3,6 +3,54 @@ export type BillingInterval = 'month' | 'year'
 export type InventoryType = 'serialized' | 'quantity'
 export type PricingType = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'event' | 'custom'
 
+export type EngineCode = 'rental' | 'booking' | 'membership' | 'sales'
+
+export interface TenantEngine {
+  code: EngineCode
+  name: string
+  description: string
+  is_core: boolean
+  monthly_price: string
+  is_enabled: boolean
+  price_snapshot: string | null
+  enabled_at: string | null
+}
+
+export const ENGINE_LABELS: Record<EngineCode, string> = {
+  rental: 'Sewa / Rental',
+  booking: 'Booking / Pemesanan',
+  membership: 'Keanggotaan',
+  sales: 'Penjualan',
+}
+
+export type ProductType =
+  | 'vehicle'
+  | 'equipment'
+  | 'accommodation'
+  | 'space'
+  | 'service'
+  | 'membership'
+  | 'package'
+  | 'goods'
+
+export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  vehicle: 'Kendaraan',
+  equipment: 'Peralatan',
+  accommodation: 'Akomodasi',
+  space: 'Ruang / Tempat',
+  service: 'Jasa',
+  membership: 'Keanggotaan',
+  package: 'Paket',
+  goods: 'Barang',
+}
+
+export const PRODUCT_TYPES_BY_ENGINE: Record<EngineCode, ProductType[]> = {
+  rental: ['vehicle', 'equipment', 'accommodation'],
+  booking: ['space', 'service'],
+  membership: ['membership', 'package'],
+  sales: ['goods'],
+}
+
 export interface BusinessTemplate {
   code: string
   name: string
@@ -125,6 +173,7 @@ export interface TenantSubscription {
   ends_at?: string | null
   canceled_at?: string | null
   plan: TenantSubscriptionPlan | null
+  engines?: TenantEngine[]
 }
 
 export type SubscriptionPaymentStatus = 'pending' | 'paid' | 'failed' | 'expired'
@@ -231,6 +280,7 @@ export interface BusinessOnboardingPayload {
 }
 
 export interface RentalOnboardingPayload {
+  engine_code: EngineCode
   rental_model: 'per_hour' | 'per_day' | 'session'
   booking_strategy: 'queue' | 'date_range' | 'session'
   allocation_strategy: 'auto_assign' | 'manual'
@@ -241,6 +291,7 @@ export interface RentalOnboardingPayload {
 }
 
 export interface BookingOnboardingPayload {
+  engine_code: EngineCode
   allow_online_booking: boolean
   allow_walk_in: boolean
   enable_waiting_list: boolean

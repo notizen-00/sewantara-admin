@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   BarChart3,
+  Blocks,
   BookOpenCheck,
   Boxes,
   Building2,
@@ -65,6 +66,7 @@ const navigationGroups = [
       { key: 'maintenance', label: 'Maintenance', icon: Wrench },
       { key: 'reports', label: 'Laporan', icon: BarChart3 },
       { key: 'billing', label: 'Paket & Tagihan', icon: CreditCard },
+      { key: 'services', label: 'Layanan Bisnis', icon: Blocks },
     ],
   },
 ]

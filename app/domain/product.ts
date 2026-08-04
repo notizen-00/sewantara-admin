@@ -1,4 +1,4 @@
-import type { InventoryType, PricingType } from '~/domain/mitra'
+import type { EngineCode, InventoryType, PricingType, ProductType } from '~/domain/mitra'
 
 export interface ProductCategory {
   id: number
@@ -33,6 +33,8 @@ export interface Product {
   brand?: string | null
   model?: string | null
   description?: string | null
+  engine_code: EngineCode
+  product_type: ProductType
   inventory_type: InventoryType
   default_pricing_type: PricingType
   minimum_rental_duration: number
@@ -52,6 +54,8 @@ export interface ProductPayload {
   brand: string | null
   model: string | null
   description: string | null
+  engine_code: EngineCode
+  product_type: ProductType
   inventory_type: InventoryType
   default_pricing_type: PricingType
   minimum_rental_duration: number

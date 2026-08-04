@@ -19,6 +19,7 @@ import {
   X,
 } from '@lucide/vue'
 import type { InventoryType, PricingType } from '~/domain/mitra'
+import { ENGINE_LABELS } from '~/domain/mitra'
 import { useProductPresenter } from '~/application/products/useProductPresenter'
 
 defineEmits<{
@@ -263,6 +264,7 @@ onMounted(() => {
                 <tr class="border-b border-neutral-200 bg-neutral-50 text-xs font-semibold text-neutral-500">
                   <th class="px-5 py-3">Produk</th>
                   <th class="px-4 py-3">Kategori</th>
+                  <th class="px-4 py-3">Layanan</th>
                   <th class="px-4 py-3">Inventory</th>
                   <th class="px-4 py-3">Harga default</th>
                   <th class="px-4 py-3">Status</th>
@@ -296,6 +298,11 @@ onMounted(() => {
                   </td>
                   <td class="px-4 py-4 text-sm text-neutral-700">
                     {{ product.category?.name || categoryName(product.category_id) }}
+                  </td>
+                  <td class="px-4 py-4">
+                    <span class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-700">
+                      {{ ENGINE_LABELS[product.engine_code] }}
+                    </span>
                   </td>
                   <td class="px-4 py-4">
                     <span class="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
@@ -367,7 +374,7 @@ onMounted(() => {
               </div>
               <div class="mt-4 flex items-center justify-between border-t border-neutral-200 pt-3">
                 <span class="text-xs text-neutral-500">
-                  {{ inventoryLabel(product.inventory_type) }} · {{ pricingLabel(product.default_pricing_type) }}
+                  {{ ENGINE_LABELS[product.engine_code] }} · {{ inventoryLabel(product.inventory_type) }} · {{ pricingLabel(product.default_pricing_type) }}
                 </span>
                 <div class="flex gap-1">
                   <button class="grid h-9 w-9 place-items-center rounded-md text-neutral-500" @click="products.openProductEditor(product)">
@@ -539,6 +546,18 @@ onMounted(() => {
                   <AtomsAppInput v-model="products.productForm.slug" label="Slug" required />
                   <AtomsAppInput v-model="products.productForm.brand" label="Brand" placeholder="Sony" />
                   <AtomsAppInput v-model="products.productForm.model" label="Model" placeholder="A7 IV" />
+                  <AtomsAppSelect
+                    v-model="products.productForm.engine_code"
+                    label="Jenis layanan"
+                    :options="products.enabledEngineOptions"
+                    required
+                  />
+                  <AtomsAppSelect
+                    v-model="products.productForm.product_type"
+                    label="Jenis produk"
+                    :options="products.productTypeOptions"
+                    required
+                  />
                 </div>
                 <label class="grid gap-2 text-sm font-medium text-neutral-700">
                   Deskripsi
