@@ -16,7 +16,20 @@ import { ApiRequestError } from '~/domain/api'
 
 type OnboardingStepKey = 'business' | 'rental' | 'inventory' | 'pricing' | 'booking' | 'payment' | 'review'
 
-export function useMitraDashboard() {
+let singleton: MitraDashboardPresenter | null = null
+
+/**
+ * The dashboard aggregates state from many Pinia stores plus page-local UI
+ * state (forms, wizard step, OTP countdown). It's shared across every route
+ * (login/register/onboarding/dashboard) so state survives navigation between
+ * them — hence the singleton instead of a fresh instance per call.
+ */
+export function useMitraDashboard(): MitraDashboardPresenter {
+  if (!singleton) singleton = createMitraDashboard()
+  return singleton
+}
+
+function createMitraDashboard() {
   const catalog = useCatalogStore()
   const auth = useAuthStore()
   const billing = useBillingStore()
@@ -1069,11 +1082,9 @@ export function useMitraDashboard() {
     hydrateOnboardingPriceForm,
   )
 
-  onMounted(() => window.addEventListener('sewantara:subscription-error', handleSubscriptionError))
-  onUnmounted(() => {
-    window.removeEventListener('sewantara:subscription-error', handleSubscriptionError)
-    if (otpCooldownTimer) clearInterval(otpCooldownTimer)
-  })
+  if (process.client) {
+    window.addEventListener('sewantara:subscription-error', handleSubscriptionError)
+  }
 
   return reactive({
     activeAuthTab,
@@ -1155,4 +1166,4 @@ export function useMitraDashboard() {
   })
 }
 
-export type MitraDashboardPresenter = ReturnType<typeof useMitraDashboard>
+export type MitraDashboardPresenter = ReturnType<typeof createMitraDashboard>

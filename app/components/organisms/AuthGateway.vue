@@ -11,17 +11,33 @@ import {
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
 import { resolveApiBaseUrl } from '~/composables/useApiClient'
 
-defineProps<{
+const props = defineProps<{
   dashboard: MitraDashboardPresenter
 }>()
 
 const config = useRuntimeConfig()
+const route = useRoute()
+const router = useRouter()
 
 const benefits = [
   'Kelola cabang dan operasional dalam satu workspace',
   'Pantau performa bisnis secara real-time',
   'Aktivasi cepat dengan panduan langkah demi langkah',
 ]
+
+// /login dan /register berbagi tampilan ini — tab aktif mengikuti URL, dan
+// mengganti tab benar-benar berpindah rute (bukan sekadar state lokal).
+watch(
+  () => route.path,
+  (path) => {
+    props.dashboard.activeAuthTab = path === '/register' ? 'register' : 'login'
+  },
+  { immediate: true },
+)
+
+function selectAuthTab(tab: string) {
+  router.push(tab === 'register' ? '/register' : '/login')
+}
 
 function connectWithGoogle() {
   if (!process.client) return
@@ -113,11 +129,12 @@ function connectWithGoogle() {
 
           <div class="mt-7">
             <MoleculesSegmentedControl
-              v-model="dashboard.activeAuthTab"
+              :model-value="dashboard.activeAuthTab"
               :options="[
                 { label: 'Login', value: 'login' },
                 { label: 'Register', value: 'register' },
               ]"
+              @update:model-value="selectAuthTab"
             />
           </div>
 

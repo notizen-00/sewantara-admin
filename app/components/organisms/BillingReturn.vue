@@ -116,7 +116,7 @@ onUnmounted(billing.stopPolling)
       <p v-if="billing.error" class="mt-4 text-sm text-danger-500">{{ billing.error }}</p>
 
       <div class="mt-6 grid gap-3">
-        <NuxtLink v-if="auth.isAuthenticated && initialized" to="/" class="inline-flex min-h-11 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700">
+        <NuxtLink v-if="auth.isAuthenticated && initialized" to="/dashboard" class="inline-flex min-h-11 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700">
           Kembali ke dashboard
         </NuxtLink>
         <AtomsAppButton v-if="['failed', 'expired', 'cancel'].includes(displayState) && auth.isAuthenticated" variant="secondary" :disabled="billing.loading" @click="retryCheckout">
@@ -125,7 +125,7 @@ onUnmounted(billing.stopPolling)
         <AtomsAppButton v-if="displayState === 'pending' && initialized" variant="secondary" :disabled="billing.polling" @click="initialize">
           <span class="flex items-center gap-2"><RotateCw :size="16" />Periksa lagi</span>
         </AtomsAppButton>
-        <NuxtLink v-if="!auth.isAuthenticated" to="/" class="text-sm font-semibold text-primary-700">Masuk ke akun</NuxtLink>
+        <NuxtLink v-if="!auth.isAuthenticated" to="/login" class="text-sm font-semibold text-primary-700">Masuk ke akun</NuxtLink>
       </div>
     </section>
   </TemplatesAuthLayout>

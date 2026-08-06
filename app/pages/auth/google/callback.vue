@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { AlertCircle, ArrowLeft, LoaderCircle } from '@lucide/vue'
+import { useMitraDashboard } from '~/application/mitra/useMitraDashboard'
+
+// Halaman transisi OAuth murni — tidak boleh terkena redirect otomatis
+// layout default sebelum proses login selesai.
+definePageMeta({ layout: false })
 
 const route = useRoute()
 const auth = useAuthStore()
+const dashboard = useMitraDashboard()
 const snackbar = useSnackbarStore()
 const errorMessage = ref('')
 
@@ -34,11 +40,22 @@ onMounted(async () => {
 
   try {
     await auth.loginWithGoogleCode(code)
-    snackbar.success('Login dengan Google berhasil.', 'Selamat datang')
-    await navigateTo('/', { replace: true })
   } catch {
     errorMessage.value = auth.error || 'Login dengan Google gagal. Silakan coba kembali.'
+    return
   }
+
+  try {
+    // dashboard bisa saja sudah pernah initialize() sebelum login ini (mis.
+    // dari /login), yang tidak akan berjalan ulang — jadi tenant/branch data
+    // perlu di-refresh eksplisit di sini.
+    await dashboard.refreshTenantData(false)
+  } catch {
+    // Status "butuh billing recovery" sudah ditangani lewat event subscription-error.
+  }
+
+  snackbar.success('Login dengan Google berhasil.', 'Selamat datang')
+  await navigateTo('/', { replace: true })
 })
 </script>
 
@@ -76,7 +93,7 @@ onMounted(async () => {
           {{ errorMessage }}
         </p>
         <NuxtLink
-          to="/"
+          to="/login"
           class="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(190,18,60,0.2)] transition hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-100"
         >
           <ArrowLeft :size="17" />
