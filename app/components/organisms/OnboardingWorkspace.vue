@@ -19,14 +19,6 @@ const operatingDays = [
 
 <template>
   <section id="onboarding" class="grid gap-5">
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-4">
-      <div>
-        <p class="text-sm font-semibold text-neutral-900">{{ dashboard.selectedStepLabel }}</p>
-        <p class="mt-1 text-sm text-neutral-500">Tahap aktif dari penyiapan workspace {{ dashboard.tenantName }}.</p>
-      </div>
-      <AtomsStatusBadge :label="`${dashboard.onboarding.completion}% selesai`" />
-    </div>
-
     <MoleculesFormSection
       v-if="dashboard.selectedOnboardingStep === 'business'"
       eyebrow="Tahap 1"
@@ -203,6 +195,12 @@ const operatingDays = [
             />
             <AtomsAppInput v-model="dashboard.inventoryProductForm.brand" label="Merek" placeholder="Sony" />
             <AtomsAppInput v-model="dashboard.inventoryProductForm.model" label="Model" placeholder="ILCE-7M4" />
+            <AtomsAppSelect
+              v-model="dashboard.inventoryProductForm.product_type"
+              label="Jenis produk"
+              :options="dashboard.inventoryProductTypeOptions"
+              required
+            />
           </div>
 
           <label class="mt-4 grid gap-2 text-sm font-medium text-neutral-700">

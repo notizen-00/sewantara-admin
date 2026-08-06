@@ -7,7 +7,7 @@ defineProps<{
 </script>
 
 <template>
-  <section class="rounded-lg border border-neutral-200 bg-neutral-0 p-6 shadow-card">
+  <section class="rounded-lg border border-neutral-200 bg-neutral-0 p-6 shadow-card max-sm:p-4">
     <div class="mb-4">
       <p class="mb-1 text-xs font-semibold uppercase text-neutral-500">{{ eyebrow }}</p>
       <h3 class="text-lg font-semibold text-neutral-900">{{ title }}</h3>

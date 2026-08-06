@@ -1,11 +1,14 @@
 import type {
   BookingOnboardingPayload,
   BusinessOnboardingPayload,
+  EngineCode,
   PaymentsOnboardingPayload,
   PricingType,
+  ProductType,
   RegisterPayload,
   RentalOnboardingPayload,
 } from '~/domain/mitra'
+import { PRODUCT_TYPES_BY_ENGINE, PRODUCT_TYPE_LABELS } from '~/domain/mitra'
 import type { CategoryPayload, ProductPayload } from '~/domain/product'
 import type { ProductUnitCreatePayload, StockAdjustmentPayload } from '~/domain/inventory'
 import type { ProductPricePayload } from '~/domain/pricing'
@@ -175,6 +178,8 @@ export function useMitraDashboard() {
     }
   })
 
+  const ONBOARDING_PRODUCT_ENGINE: EngineCode = 'rental'
+
   const inventoryProductForm = reactive({
     category_id: null as number | null,
     name: '',
@@ -183,6 +188,8 @@ export function useMitraDashboard() {
     brand: '',
     model: '',
     description: '',
+    engine_code: ONBOARDING_PRODUCT_ENGINE,
+    product_type: 'equipment' as ProductType,
     inventory_type: 'serialized' as 'serialized' | 'quantity',
     default_pricing_type: 'daily' as 'hourly' | 'daily' | 'weekly' | 'monthly' | 'event' | 'custom',
     minimum_rental_duration: 1,
@@ -231,6 +238,20 @@ export function useMitraDashboard() {
       .filter((category) => category.is_active)
       .map((category) => ({ label: category.name, value: category.id as number | null })),
   ])
+  const inventoryProductTypeOptions = computed(() =>
+    PRODUCT_TYPES_BY_ENGINE[ONBOARDING_PRODUCT_ENGINE].map((type) => ({
+      label: PRODUCT_TYPE_LABELS[type],
+      value: type,
+    })),
+  )
+  const suggestedInventoryProductType = computed<ProductType>(() => {
+    const templateCode = (auth.businessType || registerForm.business_type || '').toLowerCase()
+    const suggestions: Array<[RegExp, ProductType]> = [
+      [/(car|mobil|motor|vehicle)/, 'vehicle'],
+      [/(kos|villa|apartemen|apartment|homestay)/, 'accommodation'],
+    ]
+    return suggestions.find(([pattern]) => pattern.test(templateCode))?.[1] || 'equipment'
+  })
   const suggestedInventoryCategoryName = computed(() => {
     const templateCode = (auth.businessType || registerForm.business_type || '').toLowerCase()
     const matchedTemplate = catalog.templates.find((template) => template.code === templateCode)
@@ -483,6 +504,10 @@ export function useMitraDashboard() {
       inventoryProductForm.category_id = products.categories[0].id
     }
 
+    if (!products.products.length) {
+      inventoryProductForm.product_type = suggestedInventoryProductType.value
+    }
+
     if (!products.categories.length && !inventoryCategoryModalOpen.value) {
       openInventoryCategoryModal()
     }
@@ -500,6 +525,8 @@ export function useMitraDashboard() {
       brand: '',
       model: '',
       description: '',
+      engine_code: ONBOARDING_PRODUCT_ENGINE,
+      product_type: suggestedInventoryProductType.value,
       inventory_type: 'serialized',
       default_pricing_type: 'daily',
       minimum_rental_duration: 1,
@@ -591,6 +618,8 @@ export function useMitraDashboard() {
         brand: inventoryProductForm.brand.trim() || null,
         model: inventoryProductForm.model.trim() || null,
         description: inventoryProductForm.description.trim() || null,
+        engine_code: inventoryProductForm.engine_code,
+        product_type: inventoryProductForm.product_type,
         inventory_type: inventoryProductForm.inventory_type,
         default_pricing_type: inventoryProductForm.default_pricing_type,
         minimum_rental_duration: Math.max(1, Number(inventoryProductForm.minimum_rental_duration || 1)),
@@ -703,6 +732,8 @@ export function useMitraDashboard() {
           brand: product.brand || null,
           model: product.model || null,
           description: product.description || null,
+          engine_code: product.engine_code,
+          product_type: product.product_type,
           inventory_type: product.inventory_type,
           default_pricing_type: compatiblePricingType.value,
           minimum_rental_duration: Number(product.minimum_rental_duration || 1),
@@ -1057,6 +1088,7 @@ export function useMitraDashboard() {
     errorMessage,
     formatCurrency,
     inventoryCategoryOptions,
+    inventoryProductTypeOptions,
     inventoryCategoryForm,
     inventoryCategoryModalOpen,
     inventoryProductForm,
