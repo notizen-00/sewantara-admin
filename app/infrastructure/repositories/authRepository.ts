@@ -20,6 +20,16 @@ export function useAuthRepository() {
         method: 'POST',
         body: JSON.stringify({ code }),
       }),
+    requestOtp: (email: string) =>
+      api.central<null>('/central/auth/otp/request', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+    verifyOtp: (email: string, code: string) =>
+      api.central<null>('/central/auth/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email, code }),
+      }),
     me: () => api.tenant<TenantSession>('/me'),
     logout: () =>
       api.tenant<null>('/auth/logout', {

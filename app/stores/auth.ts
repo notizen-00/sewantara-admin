@@ -26,6 +26,11 @@ export const useAuthStore = defineStore('auth', () => {
   const branchSwitching = ref(false)
   const error = ref('')
 
+  const otpEmail = ref('')
+  const otpVerified = ref(false)
+  const otpRequesting = ref(false)
+  const otpVerifying = ref(false)
+
   const isAuthenticated = computed(() => Boolean(accessToken.value && tenantId.value))
   const tenantStatus = computed(() => session.value?.tenant.status || 'onboarding')
   const subscription = computed(() => session.value?.subscription || null)
@@ -96,6 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
       tenantId.value = response.data.tenant.id
       businessType.value = payload.business_type
       persist()
+      resetOtp()
       return response.data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Registrasi tenant gagal.'
@@ -139,6 +145,51 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  function normalizeEmail(value: string) {
+    return value.trim().toLowerCase()
+  }
+
+  async function requestOtp(email: string) {
+    otpRequesting.value = true
+    error.value = ''
+
+    try {
+      await useAuthRepository().requestOtp(email)
+      otpEmail.value = normalizeEmail(email)
+      otpVerified.value = false
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Gagal mengirim kode verifikasi.'
+      throw err
+    } finally {
+      otpRequesting.value = false
+    }
+  }
+
+  async function verifyOtp(email: string, code: string) {
+    otpVerifying.value = true
+    error.value = ''
+
+    try {
+      await useAuthRepository().verifyOtp(email, code)
+      otpEmail.value = normalizeEmail(email)
+      otpVerified.value = true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Kode verifikasi salah atau sudah kedaluwarsa.'
+      throw err
+    } finally {
+      otpVerifying.value = false
+    }
+  }
+
+  function isEmailOtpVerified(email: string) {
+    return otpVerified.value && otpEmail.value === normalizeEmail(email || '')
+  }
+
+  function resetOtp() {
+    otpEmail.value = ''
+    otpVerified.value = false
   }
 
   function applyLoginResult(result: LoginResult) {
@@ -241,6 +292,10 @@ export const useAuthStore = defineStore('auth', () => {
     tenantSwitching,
     branchSwitching,
     error,
+    otpEmail,
+    otpVerified,
+    otpRequesting,
+    otpVerifying,
     isAuthenticated,
     tenantStatus,
     roles,
@@ -252,6 +307,10 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     loginWithGoogleCode,
+    requestOtp,
+    verifyOtp,
+    isEmailOtpVerified,
+    resetOtp,
     fetchSession,
     syncBranchId,
     switchTenant,

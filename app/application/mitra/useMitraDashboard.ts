@@ -39,6 +39,11 @@ export function useMitraDashboard() {
     password: '',
   })
 
+  const otpCode = ref('')
+  const otpResendRemaining = ref(0)
+  const OTP_RESEND_COOLDOWN_SECONDS = 60
+  let otpCooldownTimer: ReturnType<typeof setInterval> | null = null
+
   const registerForm = reactive<RegisterPayload>({
     business_name: '',
     business_type: '',
@@ -118,6 +123,13 @@ export function useMitraDashboard() {
   const tenantStatusLabel = computed(() => auth.session?.tenant.status || (auth.isAuthenticated ? 'onboarding' : 'guest'))
   const selectedRegistrationPlan = computed(() =>
     catalog.plans.find((plan) => plan.id === Number(registerForm.plan_id)) || null,
+  )
+  const otpSent = computed(() =>
+    Boolean(auth.otpEmail) && auth.otpEmail === registerForm.owner.email.trim().toLowerCase(),
+  )
+  const emailOtpVerified = computed(() => auth.isEmailOtpVerified(registerForm.owner.email))
+  const canRequestEmailOtp = computed(() =>
+    Boolean(registerForm.owner.email.trim()) && otpResendRemaining.value === 0 && !emailOtpVerified.value,
   )
   const subscriptionSummary = computed(() => {
     const subscription = auth.subscription
@@ -722,8 +734,53 @@ export function useMitraDashboard() {
     }
   }
 
+  function startOtpResendCooldown(seconds = OTP_RESEND_COOLDOWN_SECONDS) {
+    otpResendRemaining.value = seconds
+    if (otpCooldownTimer) clearInterval(otpCooldownTimer)
+    otpCooldownTimer = setInterval(() => {
+      otpResendRemaining.value = Math.max(0, otpResendRemaining.value - 1)
+      if (otpResendRemaining.value === 0 && otpCooldownTimer) {
+        clearInterval(otpCooldownTimer)
+        otpCooldownTimer = null
+      }
+    }, 1000)
+  }
+
+  async function requestEmailOtp() {
+    successMessage.value = ''
+    const email = registerForm.owner.email.trim()
+    if (!email) return
+
+    try {
+      await auth.requestOtp(email)
+      otpCode.value = ''
+      startOtpResendCooldown()
+      successMessage.value = 'Kode verifikasi telah dikirim ke email Anda.'
+    } catch {
+      // Store menampilkan pesan error dari backend.
+    }
+  }
+
+  async function verifyEmailOtp() {
+    successMessage.value = ''
+    const email = registerForm.owner.email.trim()
+    const code = otpCode.value.trim()
+    if (!email || code.length !== 6) return
+
+    try {
+      await auth.verifyOtp(email, code)
+      successMessage.value = 'Email berhasil diverifikasi.'
+    } catch {
+      // Store menampilkan pesan error dari backend.
+    }
+  }
+
   async function submitRegister() {
     successMessage.value = ''
+    if (!emailOtpVerified.value) {
+      auth.error = 'Email belum diverifikasi. Silakan minta dan masukkan kode OTP terlebih dahulu.'
+      return
+    }
     try {
       await auth.register(registerForm)
       await auth.login(registerForm.owner.email, registerForm.owner.password)
@@ -982,7 +1039,10 @@ export function useMitraDashboard() {
   )
 
   onMounted(() => window.addEventListener('sewantara:subscription-error', handleSubscriptionError))
-  onUnmounted(() => window.removeEventListener('sewantara:subscription-error', handleSubscriptionError))
+  onUnmounted(() => {
+    window.removeEventListener('sewantara:subscription-error', handleSubscriptionError)
+    if (otpCooldownTimer) clearInterval(otpCooldownTimer)
+  })
 
   return reactive({
     activeAuthTab,
@@ -1009,6 +1069,11 @@ export function useMitraDashboard() {
     compatiblePricingType,
     isInitialized,
     loginForm,
+    otpCode,
+    otpSent,
+    otpResendRemaining,
+    emailOtpVerified,
+    canRequestEmailOtp,
     metricCards,
     subscriptionSummary,
     onboarding,
@@ -1053,6 +1118,8 @@ export function useMitraDashboard() {
     switchBranch,
     submitLogin,
     submitRegister,
+    requestEmailOtp,
+    verifyEmailOtp,
   })
 }
 

@@ -248,7 +248,57 @@ function connectWithGoogle() {
                   <AtomsAppInput v-model="dashboard.registerForm.owner.phone" label="Telepon" placeholder="08xxxxxxxxxx" required />
                 </div>
 
-                <AtomsAppInput v-model="dashboard.registerForm.owner.email" label="Email owner" type="email" placeholder="nama@bisnis.com" required />
+                <div class="grid gap-2">
+                  <AtomsAppInput
+                    v-model="dashboard.registerForm.owner.email"
+                    label="Email owner"
+                    type="email"
+                    placeholder="nama@bisnis.com"
+                    required
+                    :disabled="dashboard.emailOtpVerified"
+                  />
+
+                  <p v-if="dashboard.emailOtpVerified" class="flex items-center gap-1.5 text-xs font-semibold text-primary-700">
+                    <BadgeCheck :size="14" /> Email terverifikasi
+                  </p>
+
+                  <template v-else>
+                    <div class="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        class="text-xs font-semibold text-primary-700 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-neutral-400 disabled:no-underline"
+                        :disabled="!dashboard.canRequestEmailOtp || dashboard.auth.otpRequesting"
+                        @click="dashboard.requestEmailOtp"
+                      >
+                        {{ dashboard.auth.otpRequesting ? 'Mengirim kode...' : dashboard.otpSent ? 'Kirim ulang kode verifikasi' : 'Kirim kode verifikasi' }}
+                      </button>
+                      <span v-if="dashboard.otpResendRemaining > 0" class="text-xs text-neutral-400">
+                        Bisa kirim ulang dalam {{ dashboard.otpResendRemaining }}s
+                      </span>
+                    </div>
+
+                    <div v-if="dashboard.otpSent" class="flex items-end gap-3 max-sm:flex-col max-sm:items-stretch">
+                      <AtomsAppInput
+                        v-model="dashboard.otpCode"
+                        label="Kode verifikasi"
+                        inputmode="numeric"
+                        pattern="[0-9]{6}"
+                        placeholder="6 digit kode"
+                        :maxlength="6"
+                        class="flex-1"
+                      />
+                      <AtomsAppButton
+                        type="button"
+                        variant="secondary"
+                        class="min-h-12 shrink-0"
+                        :disabled="dashboard.auth.otpVerifying || dashboard.otpCode.trim().length !== 6"
+                        @click="dashboard.verifyEmailOtp"
+                      >
+                        {{ dashboard.auth.otpVerifying ? 'Memverifikasi...' : 'Verifikasi kode' }}
+                      </AtomsAppButton>
+                    </div>
+                  </template>
+                </div>
 
                 <div class="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
                   <AtomsAppInput v-model="dashboard.registerForm.owner.password" label="Password" type="password" placeholder="Minimal 8 karakter" required :minlength="8" />
@@ -266,7 +316,11 @@ function connectWithGoogle() {
 
             <AtomsAppCheckbox v-model="dashboard.registerForm.terms_accepted" label="Saya menyetujui syarat penggunaan dan kebijakan privasi Sewantara." required />
 
-            <AtomsAppButton type="submit" :disabled="dashboard.auth.loading || dashboard.billing.loading" class="min-h-12 rounded-xl shadow-[0_10px_24px_rgba(190,18,60,0.2)]">
+            <AtomsAppButton
+              type="submit"
+              :disabled="dashboard.auth.loading || dashboard.billing.loading || !dashboard.emailOtpVerified"
+              class="min-h-12 rounded-xl shadow-[0_10px_24px_rgba(190,18,60,0.2)]"
+            >
               <span>
                 {{
                   dashboard.auth.loading || dashboard.billing.loading
