@@ -84,6 +84,10 @@ export interface Tenant {
   id: string
   name: string
   slug?: string
+  /** Host lengkap landing page tenant, mis. "toko.sewantara.id". */
+  domain?: string | null
+  /** Label subdomain tanpa base domain, mis. "toko". */
+  subdomain?: string | null
   business_type?: string
   status: TenantStatus
   timezone?: string

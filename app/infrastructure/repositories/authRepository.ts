@@ -1,10 +1,16 @@
 import type { LoginResult, RegisterPayload, RegisterResult, TenantSession } from '~/domain/mitra'
-import { useApiClient } from '~/composables/useApiClient'
+import { resolveApiBaseUrl, useApiClient } from '~/composables/useApiClient'
 
 export function useAuthRepository() {
   const api = useApiClient()
+  const config = useRuntimeConfig()
 
   return {
+    googleRedirectUrl: (deviceName: string) => {
+      const url = new URL(`${resolveApiBaseUrl(config.public.apiBase)}/central/auth/google/redirect`)
+      url.searchParams.set('device_name', deviceName)
+      return url.toString()
+    },
     register: (payload: RegisterPayload) =>
       api.central<RegisterResult>('/central/auth/register', {
         method: 'POST',

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { SubscriptionPayment } from '~/domain/mitra'
 import { useBillingRepository } from '~/infrastructure/repositories/billingRepository'
+import * as storage from '~/infrastructure/storage/localStorage'
 
 const pendingPaymentKey = 'sewantara.subscription_payment_id'
 const paymentHistoryKey = 'sewantara.subscription_payment_ids'
@@ -18,31 +19,21 @@ export const useBillingStore = defineStore('billing', () => {
   const isPending = computed(() => payment.value?.status === 'pending')
 
   function rememberPayment(paymentId: string) {
-    if (!process.client) return
-
-    localStorage.setItem(pendingPaymentKey, paymentId)
+    storage.writeString(pendingPaymentKey, paymentId)
     const ids = paymentHistoryIds().filter((id) => id !== paymentId)
-    localStorage.setItem(paymentHistoryKey, JSON.stringify([paymentId, ...ids].slice(0, 50)))
+    storage.writeStringList(paymentHistoryKey, [paymentId, ...ids].slice(0, 50))
   }
 
   function paymentHistoryIds() {
-    if (!process.client) return [] as string[]
-
-    try {
-      const value = JSON.parse(localStorage.getItem(paymentHistoryKey) || '[]')
-      return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
-    } catch {
-      return []
-    }
+    return storage.readStringList(paymentHistoryKey)
   }
 
   function pendingPaymentId() {
-    if (!process.client) return ''
-    return localStorage.getItem(pendingPaymentKey) || ''
+    return storage.readString(pendingPaymentKey)
   }
 
   function clearPendingPayment() {
-    if (process.client) localStorage.removeItem(pendingPaymentKey)
+    storage.remove(pendingPaymentKey)
   }
 
   async function createCheckout() {

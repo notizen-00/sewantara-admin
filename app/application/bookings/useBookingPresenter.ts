@@ -7,6 +7,8 @@ import type {
 } from '~/domain/booking'
 import type { Product } from '~/domain/product'
 import type { CustomerCreatePayload } from '~/domain/customer'
+import type { PricingType } from '~/domain/mitra'
+import { PRICING_TYPE_LABELS } from '~/domain/pricing'
 
 type AvailabilityState = 'idle' | 'available' | 'unavailable'
 type BookingAction = 'cancel' | 'return'
@@ -620,15 +622,7 @@ export function useBookingPresenter() {
   }
 
   function pricingLabel(value: string) {
-    const labels: Record<string, string> = {
-      hourly: 'Per jam',
-      daily: 'Per hari',
-      weekly: 'Per minggu',
-      monthly: 'Per bulan',
-      event: 'Per sesi',
-      custom: 'Kustom',
-    }
-    return labels[value] || value.replace(/_/g, ' ')
+    return PRICING_TYPE_LABELS[value as PricingType] || value.replace(/_/g, ' ')
   }
 
   function productRate(product: Product) {

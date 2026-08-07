@@ -12,9 +12,11 @@ import { PRODUCT_TYPES_BY_ENGINE, PRODUCT_TYPE_LABELS } from '~/domain/mitra'
 import type { CategoryPayload, ProductPayload } from '~/domain/product'
 import type { ProductUnitCreatePayload, StockAdjustmentPayload } from '~/domain/inventory'
 import type { ProductPricePayload } from '~/domain/pricing'
+import { pricingTypeLabel } from '~/domain/pricing'
 import { ApiRequestError } from '~/domain/api'
 
-type OnboardingStepKey = 'business' | 'rental' | 'inventory' | 'pricing' | 'booking' | 'payment' | 'review'
+import { ONBOARDING_STEPS, ONBOARDING_STEP_LABELS, type OnboardingStepKey } from '~/domain/navigation'
+import { resolveTenantSite } from '~/domain/tenantSite'
 
 let singleton: MitraDashboardPresenter | null = null
 
@@ -46,6 +48,8 @@ function createMitraDashboard() {
   const activeAuthTab = ref<'login' | 'register'>('login')
   const registrationBillingChoice = ref<'trial' | 'pay_now'>('trial')
   const successMessage = ref('')
+  /** Pesan validasi milik presenter — terpisah dari error milik store. */
+  const validationError = ref('')
   const isInitialized = ref(false)
   const requiresBillingRecovery = ref(false)
   const selectedOnboardingStep = ref<OnboardingStepKey>('business')
@@ -147,6 +151,9 @@ function createMitraDashboard() {
   const canRequestEmailOtp = computed(() =>
     Boolean(registerForm.owner.email.trim()) && otpResendRemaining.value === 0 && !emailOtpVerified.value,
   )
+  const tenantSite = computed(() =>
+    resolveTenantSite(auth.session?.tenant, String(useRuntimeConfig().public.tenantBaseDomain || '')),
+  )
   const subscriptionSummary = computed(() => {
     const subscription = auth.subscription
     const plan = subscription?.plan
@@ -236,11 +243,7 @@ function createMitraDashboard() {
       .filter((product) => product.is_active)
       .map((product) => ({ label: `${product.name} · ${product.sku}`, value: product.id as number | null })),
   )
-  const compatiblePricingLabel = computed(() => ({
-    hourly: 'Per jam',
-    daily: 'Per hari',
-    event: 'Per sesi / acara',
-  }[compatiblePricingType.value] || compatiblePricingType.value))
+  const compatiblePricingLabel = computed(() => pricingTypeLabel(compatiblePricingType.value))
   const pricingSetupLoading = computed(() => pricing.loading || pricing.saving || products.loadingProducts || products.saving)
 
   const inventoryCategoryOptions = computed(() => [
@@ -295,9 +298,10 @@ function createMitraDashboard() {
   )
 
   const errorMessage = computed(() =>
-    auth.isAuthenticated
+    validationError.value
+    || (auth.isAuthenticated
       ? billing.error || auth.error || branches.error || onboarding.error || products.error || inventory.error || pricing.error || operations.error
-      : auth.error || catalog.error,
+      : auth.error || catalog.error),
   )
 
   const availableBranches = computed(() => {
@@ -313,15 +317,20 @@ function createMitraDashboard() {
 
   const onboardingSteps = computed(() => {
     const checklist = onboarding.progress?.checklist
-    const steps: Array<{ key: OnboardingStepKey; label: string; done: boolean }> = [
-      { key: 'business', label: 'Informasi Usaha', done: Boolean(checklist?.business) },
-      { key: 'rental', label: 'Model Penyewaan', done: Boolean(checklist?.rental_configuration) },
-      { key: 'inventory', label: 'Resource & Unit', done: Boolean(checklist?.inventory) },
-      { key: 'pricing', label: 'Harga', done: Boolean(checklist?.pricing) },
-      { key: 'booking', label: 'Booking', done: Boolean(checklist?.booking) },
-      { key: 'payment', label: 'Pembayaran', done: Boolean(checklist?.payment) },
-      { key: 'review', label: 'Review & Aktivasi', done: onboarding.completion >= 100 },
-    ]
+    const doneByStep: Record<OnboardingStepKey, boolean> = {
+      business: Boolean(checklist?.business),
+      rental: Boolean(checklist?.rental_configuration),
+      inventory: Boolean(checklist?.inventory),
+      pricing: Boolean(checklist?.pricing),
+      booking: Boolean(checklist?.booking),
+      payment: Boolean(checklist?.payment),
+      review: onboarding.completion >= 100,
+    }
+    const steps = ONBOARDING_STEPS.map((key) => ({
+      key,
+      label: ONBOARDING_STEP_LABELS[key],
+      done: doneByStep[key],
+    }))
 
     let prerequisitesComplete = true
     return steps.map((step, index) => {
@@ -553,7 +562,7 @@ function createMitraDashboard() {
   }
 
   function openInventoryCategoryModal() {
-    products.error = ''
+    validationError.value = ''
     inventoryCategoryForm.name = suggestedInventoryCategoryName.value
     inventoryCategoryForm.description = ''
     inventoryCategoryModalOpen.value = true
@@ -567,11 +576,11 @@ function createMitraDashboard() {
   async function createOnboardingCategory() {
     const name = inventoryCategoryForm.name.trim()
     if (!name) {
-      products.error = 'Nama kategori wajib diisi.'
+      validationError.value = 'Nama kategori wajib diisi.'
       return false
     }
 
-    products.error = ''
+    validationError.value = ''
     const payload: CategoryPayload = {
       parent_id: null,
       name,
@@ -600,25 +609,24 @@ function createMitraDashboard() {
     const sku = inventoryProductForm.sku.trim().toUpperCase()
 
     if (!productName || !productSlug || !sku) {
-      products.error = 'Nama produk, slug, dan SKU wajib diisi.'
+      validationError.value = 'Nama produk, slug, dan SKU wajib diisi.'
       return false
     }
     if (!inventoryProductForm.category_id) {
-      products.error = 'Buat atau pilih kategori produk terlebih dahulu.'
+      validationError.value = 'Buat atau pilih kategori produk terlebih dahulu.'
       return false
     }
     if (inventoryProductForm.inventory_type === 'serialized' && !inventoryProductForm.unit_code.trim()) {
-      inventory.error = 'Kode unit wajib diisi untuk produk serialized.'
+      validationError.value = 'Kode unit wajib diisi untuk produk serialized.'
       return false
     }
     const initialQuantity = Number(inventoryProductForm.initial_quantity)
     if (inventoryProductForm.inventory_type === 'quantity' && (!Number.isInteger(initialQuantity) || initialQuantity < 1)) {
-      inventory.error = 'Stok awal harus berupa bilangan minimal 1.'
+      validationError.value = 'Stok awal harus berupa bilangan minimal 1.'
       return false
     }
 
-    products.error = ''
-    inventory.error = ''
+    validationError.value = ''
 
     try {
       const categoryId = inventoryProductForm.category_id
@@ -712,19 +720,19 @@ function createMitraDashboard() {
     const amount = Number(onboardingPriceForm.price)
 
     if (!product) {
-      pricing.error = 'Pilih produk yang akan diberi harga.'
+      validationError.value = 'Pilih produk yang akan diberi harga.'
       return false
     }
     if (!Number.isInteger(duration) || duration < 1) {
-      pricing.error = 'Durasi harga harus berupa bilangan minimal 1.'
+      validationError.value = 'Durasi harga harus berupa bilangan minimal 1.'
       return false
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      pricing.error = 'Nominal harga harus lebih besar dari 0.'
+      validationError.value = 'Nominal harga harus lebih besar dari 0.'
       return false
     }
 
-    pricing.error = ''
+    validationError.value = ''
     const payload: ProductPricePayload = {
       product_id: product.id,
       pricing_type: compatiblePricingType.value,
@@ -822,9 +830,11 @@ function createMitraDashboard() {
   async function submitRegister() {
     successMessage.value = ''
     if (!emailOtpVerified.value) {
-      auth.error = 'Email belum diverifikasi. Silakan minta dan masukkan kode OTP terlebih dahulu.'
+      validationError.value = 'Email belum diverifikasi. Silakan minta dan masukkan kode OTP terlebih dahulu.'
       return
     }
+
+    validationError.value = ''
     try {
       await auth.register(registerForm)
       await auth.login(registerForm.owner.email, registerForm.owner.password)
@@ -910,6 +920,7 @@ function createMitraDashboard() {
     if (!target?.available) return
     selectedOnboardingStep.value = target.key
     successMessage.value = ''
+    validationError.value = ''
   }
 
   function goToPreviousStep() {
@@ -917,6 +928,7 @@ function createMitraDashboard() {
     if (currentIndex <= 0) return
     selectedOnboardingStep.value = onboardingSteps.value[currentIndex - 1].key
     successMessage.value = ''
+    validationError.value = ''
   }
 
   async function saveCurrentStep(advance: boolean) {
@@ -981,20 +993,24 @@ function createMitraDashboard() {
     }
   }
 
+  function resetWorkspaceStores() {
+    branches.clear()
+    onboarding.reset()
+    operations.reset()
+    settings.reset()
+    products.reset()
+    bookings.reset()
+    inventory.reset()
+    pricing.reset()
+    users.reset()
+  }
+
   async function switchTenant(tenantId: string, branchId = 1) {
     successMessage.value = ''
 
     try {
       await auth.switchTenant(tenantId, branchId)
-      branches.clear()
-      onboarding.progress = null
-      operations.dashboard = null
-      settings.reset()
-      products.reset()
-      bookings.reset()
-      inventory.reset()
-      pricing.reset()
-      users.reset()
+      resetWorkspaceStores()
       await refreshTenantData(false)
       successMessage.value = `Workspace ${auth.session?.tenant.name || 'aktif'} sedang digunakan.`
     } catch {
@@ -1004,16 +1020,9 @@ function createMitraDashboard() {
 
   async function logout() {
     await auth.logout()
-    branches.clear()
-    onboarding.progress = null
-    operations.dashboard = null
-    settings.reset()
-    products.reset()
-    bookings.reset()
-    inventory.reset()
-    pricing.reset()
-    users.reset()
+    resetWorkspaceStores()
     successMessage.value = ''
+    validationError.value = ''
     requiresBillingRecovery.value = false
 
     if (!catalog.templates.length || !catalog.plans.length) {
@@ -1134,7 +1143,9 @@ function createMitraDashboard() {
     selectedRegistrationPlan,
     selectedStepLabel,
     successMessage,
+    validationError,
     tenantName,
+    tenantSite,
     tenantStatusLabel,
     transferPaymentConfig,
     completeInventory,

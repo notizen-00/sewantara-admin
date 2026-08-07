@@ -21,6 +21,8 @@ import {
   Wrench,
   X,
 } from '@lucide/vue'
+import type { Component } from 'vue'
+import { DASHBOARD_SECTION_LABELS, type DashboardSection } from '~/domain/navigation'
 
 defineProps<{
   open: boolean
@@ -50,26 +52,26 @@ const navigationGroups = [
   {
     label: 'Workspace',
     items: [
-      { key: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-      { key: 'bookings', label: 'Booking', icon: BookOpenCheck },
-      { key: 'calendar', label: 'Kalender', icon: CalendarDays },
-      { key: 'customers', label: 'Pelanggan', icon: Users },
-      { key: 'users', label: 'Pengguna', icon: UserCog },
+      { key: 'overview', icon: LayoutDashboard },
+      { key: 'bookings', icon: BookOpenCheck },
+      { key: 'calendar', icon: CalendarDays },
+      { key: 'customers', icon: Users },
+      { key: 'users', icon: UserCog },
     ],
   },
   {
     label: 'Operasional',
     items: [
-      { key: 'products', label: 'Produk', icon: PackageOpen },
-      { key: 'inventory', label: 'Inventory', icon: Boxes },
-      { key: 'pricing', label: 'Harga', icon: Tags },
-      { key: 'maintenance', label: 'Maintenance', icon: Wrench },
-      { key: 'reports', label: 'Laporan', icon: BarChart3 },
-      { key: 'billing', label: 'Paket & Tagihan', icon: CreditCard },
-      { key: 'services', label: 'Layanan Bisnis', icon: Blocks },
+      { key: 'products', icon: PackageOpen },
+      { key: 'inventory', icon: Boxes },
+      { key: 'pricing', icon: Tags },
+      { key: 'maintenance', icon: Wrench },
+      { key: 'reports', icon: BarChart3 },
+      { key: 'billing', icon: CreditCard },
+      { key: 'services', icon: Blocks },
     ],
   },
-]
+] satisfies Array<{ label: string; items: Array<{ key: DashboardSection; icon: Component }> }>
 
 function selectSection(section: string) {
   emit('select', section)
@@ -202,8 +204,8 @@ function toggleCollapse() {
             v-for="item in group.items.filter((entry) => entry.key !== 'users' || canViewUsers)"
             :key="item.key"
             type="button"
-            :title="collapsed ? item.label : undefined"
-            :aria-label="item.label"
+            :title="collapsed ? DASHBOARD_SECTION_LABELS[item.key] : undefined"
+            :aria-label="DASHBOARD_SECTION_LABELS[item.key]"
             :class="[
               'flex min-h-10 w-full items-center gap-3 rounded-sm px-3 text-left text-sm font-medium transition',
               collapsed ? 'lg:justify-center lg:px-0' : '',
@@ -214,7 +216,7 @@ function toggleCollapse() {
             @click="selectSection(item.key)"
           >
             <component :is="item.icon" :size="18" :stroke-width="1.8" class="shrink-0" />
-            <span :class="{ 'lg:hidden': collapsed }">{{ item.label }}</span>
+            <span :class="{ 'lg:hidden': collapsed }">{{ DASHBOARD_SECTION_LABELS[item.key] }}</span>
           </button>
         </div>
       </div>
@@ -223,8 +225,8 @@ function toggleCollapse() {
     <div :class="['border-t border-neutral-200 p-3', collapsed ? 'lg:px-2' : '']">
       <button
         type="button"
-        :title="collapsed ? 'Pengaturan' : undefined"
-        aria-label="Pengaturan"
+        :title="collapsed ? DASHBOARD_SECTION_LABELS.settings : undefined"
+        :aria-label="DASHBOARD_SECTION_LABELS.settings"
         :class="[
           'flex min-h-10 w-full items-center gap-3 rounded-sm px-3 text-left text-sm font-medium transition',
           collapsed ? 'lg:justify-center lg:px-0' : '',
@@ -233,12 +235,12 @@ function toggleCollapse() {
         @click="selectSection('settings')"
       >
         <Settings :size="18" class="shrink-0" />
-        <span :class="{ 'lg:hidden': collapsed }">Pengaturan</span>
+        <span :class="{ 'lg:hidden': collapsed }">{{ DASHBOARD_SECTION_LABELS.settings }}</span>
       </button>
       <button
         type="button"
-        :title="collapsed ? 'Bantuan' : undefined"
-        aria-label="Bantuan"
+        :title="collapsed ? DASHBOARD_SECTION_LABELS.help : undefined"
+        :aria-label="DASHBOARD_SECTION_LABELS.help"
         :class="[
           'mt-1 flex min-h-10 w-full items-center gap-3 rounded-sm px-3 text-left text-sm font-medium transition',
           collapsed ? 'lg:justify-center lg:px-0' : '',
@@ -247,7 +249,7 @@ function toggleCollapse() {
         @click="selectSection('help')"
       >
         <CircleHelp :size="18" class="shrink-0" />
-        <span :class="{ 'lg:hidden': collapsed }">Bantuan</span>
+        <span :class="{ 'lg:hidden': collapsed }">{{ DASHBOARD_SECTION_LABELS.help }}</span>
       </button>
     </div>
   </aside>

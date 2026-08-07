@@ -1,4 +1,18 @@
+import type { InventoryType } from '~/domain/mitra'
 import type { Product } from '~/domain/product'
+
+export const INVENTORY_TYPE_LABELS: Record<InventoryType, string> = {
+  serialized: 'Serialized',
+  quantity: 'Quantity',
+}
+
+export const INVENTORY_TYPE_DESCRIPTIONS: Record<InventoryType, string> = {
+  serialized: 'Serialized — setiap unit unik',
+  quantity: 'Quantity — berdasarkan jumlah stok',
+}
+
+export const INVENTORY_TYPE_OPTIONS = (Object.keys(INVENTORY_TYPE_LABELS) as InventoryType[])
+  .map((value) => ({ label: INVENTORY_TYPE_DESCRIPTIONS[value], value }))
 
 export interface ProductUnit {
   id: number

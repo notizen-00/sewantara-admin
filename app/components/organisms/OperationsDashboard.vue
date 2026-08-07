@@ -20,6 +20,8 @@ import {
   Wrench,
 } from '@lucide/vue'
 import type { Component } from 'vue'
+import type { TenantSite } from '~/domain/tenantSite'
+import { DASHBOARD_SECTION_LABELS, type DashboardSection, isDashboardSection } from '~/domain/navigation'
 
 interface DashboardMetric {
   key: 'revenue' | 'bookings' | 'active_rentals' | 'available_units'
@@ -46,6 +48,7 @@ const props = defineProps<{
   section: string
   metrics: DashboardMetric[]
   subscription: SubscriptionSummary
+  tenantSite: TenantSite | null
   loading?: boolean
   bookingCreateRequest?: number
 }>()
@@ -62,65 +65,58 @@ const metricIcons: Record<DashboardMetric['key'], Component> = {
   available_units: Boxes,
 }
 
-const moduleContent: Record<string, { title: string; description: string; icon: Component }> = {
+const moduleContent: Partial<Record<DashboardSection, { description: string; icon: Component }>> = {
   bookings: {
-    title: 'Booking',
     description: 'Daftar dan status transaksi penyewaan tenant.',
     icon: BookOpenCheck,
   },
   calendar: {
-    title: 'Kalender rental',
     description: 'Jadwal pengambilan, pengembalian, dan ketersediaan unit.',
     icon: CalendarDays,
   },
   customers: {
-    title: 'Pelanggan',
     description: 'Data pelanggan dan riwayat transaksi rental.',
     icon: Users,
   },
   users: {
-    title: 'Manajemen pengguna',
     description: 'Akun tim, role, permission, dan akses cabang.',
     icon: UserCog,
   },
   inventory: {
-    title: 'Inventory',
     description: 'Produk, unit serialized, dan stok pada cabang aktif.',
     icon: Boxes,
   },
   products: {
-    title: 'Produk',
     description: 'Katalog produk dan kategori rental pada workspace.',
     icon: PackageOpen,
   },
   pricing: {
-    title: 'Harga',
     description: 'Konfigurasi tarif rental untuk setiap produk.',
     icon: Tags,
   },
   maintenance: {
-    title: 'Maintenance',
     description: 'Jadwal perawatan dan kondisi unit rental.',
     icon: Wrench,
   },
   reports: {
-    title: 'Laporan',
     description: 'Ringkasan performa operasional dan pendapatan.',
     icon: BarChart3,
   },
   settings: {
-    title: 'Pengaturan',
     description: 'Profil workspace, cabang, tim, dan preferensi operasional.',
     icon: Settings,
   },
   help: {
-    title: 'Bantuan',
     description: 'Panduan penggunaan dan dukungan untuk workspace tenant.',
     icon: CircleHelp,
   },
 }
 
-const currentModule = computed(() => moduleContent[props.section] || moduleContent.bookings)
+const currentModule = computed(() => {
+  const section = isDashboardSection(props.section) ? props.section : 'bookings'
+  const content = moduleContent[section] || moduleContent.bookings!
+  return { ...content, title: DASHBOARD_SECTION_LABELS[section] }
+})
 const metricByKey = computed(() => Object.fromEntries(props.metrics.map((metric) => [metric.key, metric.raw])))
 const activeRentals = computed(() => Number(metricByKey.value.active_rentals || 0))
 const availableUnits = computed(() => Number(metricByKey.value.available_units || 0))
@@ -264,46 +260,50 @@ const currentDate = new Intl.DateTimeFormat('id-ID', {
         </div>
       </section>
 
-      <section class="rounded-sm border border-neutral-200 bg-neutral-0 shadow-card">
-        <div class="border-b border-neutral-200 px-5 py-4">
-          <h2 class="text-base font-semibold text-neutral-900">Akses cepat</h2>
-        </div>
-        <div class="divide-y divide-neutral-200 px-2">
-          <button
-            type="button"
-            class="flex min-h-14 w-full items-center justify-between gap-3 rounded-sm px-3 text-left hover:bg-neutral-50"
-            @click="$emit('navigate', 'bookings')"
-          >
-            <span class="flex items-center gap-3 text-sm font-medium text-neutral-700">
-              <BookOpenCheck :size="18" />
-              Kelola booking
-            </span>
-            <ArrowUpRight :size="16" class="text-neutral-500" />
-          </button>
-          <button
-            type="button"
-            class="flex min-h-14 w-full items-center justify-between gap-3 rounded-sm px-3 text-left hover:bg-neutral-50"
-            @click="$emit('navigate', 'products')"
-          >
-            <span class="flex items-center gap-3 text-sm font-medium text-neutral-700">
-              <Boxes :size="18" />
-              Kelola produk
-            </span>
-            <ArrowUpRight :size="16" class="text-neutral-500" />
-          </button>
-          <button
-            type="button"
-            class="flex min-h-14 w-full items-center justify-between gap-3 rounded-sm px-3 text-left hover:bg-neutral-50"
-            @click="$emit('navigate', 'reports')"
-          >
-            <span class="flex items-center gap-3 text-sm font-medium text-neutral-700">
-              <CircleDollarSign :size="18" />
-              Buka laporan
-            </span>
-            <ArrowUpRight :size="16" class="text-neutral-500" />
-          </button>
-        </div>
-      </section>
+      <div class="grid content-start gap-5">
+        <MoleculesTenantSiteCard :site="tenantSite" />
+
+        <section class="rounded-sm border border-neutral-200 bg-neutral-0 shadow-card">
+          <div class="border-b border-neutral-200 px-5 py-4">
+            <h2 class="text-base font-semibold text-neutral-900">Akses cepat</h2>
+          </div>
+          <div class="divide-y divide-neutral-200 px-2">
+            <button
+              type="button"
+              class="flex min-h-14 w-full items-center justify-between gap-3 rounded-sm px-3 text-left hover:bg-neutral-50"
+              @click="$emit('navigate', 'bookings')"
+            >
+              <span class="flex items-center gap-3 text-sm font-medium text-neutral-700">
+                <BookOpenCheck :size="18" />
+                Kelola booking
+              </span>
+              <ArrowUpRight :size="16" class="text-neutral-500" />
+            </button>
+            <button
+              type="button"
+              class="flex min-h-14 w-full items-center justify-between gap-3 rounded-sm px-3 text-left hover:bg-neutral-50"
+              @click="$emit('navigate', 'products')"
+            >
+              <span class="flex items-center gap-3 text-sm font-medium text-neutral-700">
+                <Boxes :size="18" />
+                Kelola produk
+              </span>
+              <ArrowUpRight :size="16" class="text-neutral-500" />
+            </button>
+            <button
+              type="button"
+              class="flex min-h-14 w-full items-center justify-between gap-3 rounded-sm px-3 text-left hover:bg-neutral-50"
+              @click="$emit('navigate', 'reports')"
+            >
+              <span class="flex items-center gap-3 text-sm font-medium text-neutral-700">
+                <CircleDollarSign :size="18" />
+                Buka laporan
+              </span>
+              <ArrowUpRight :size="16" class="text-neutral-500" />
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
 
     <section class="rounded-sm border border-neutral-200 bg-neutral-0 shadow-card">

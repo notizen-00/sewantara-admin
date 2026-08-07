@@ -1,6 +1,22 @@
 import type { PricingType } from '~/domain/mitra'
 import type { Product } from '~/domain/product'
 
+export const PRICING_TYPE_LABELS: Record<PricingType, string> = {
+  hourly: 'Per jam',
+  daily: 'Per hari',
+  weekly: 'Per minggu',
+  monthly: 'Per bulan',
+  event: 'Per sesi',
+  custom: 'Kustom',
+}
+
+export const PRICING_TYPE_OPTIONS = (Object.keys(PRICING_TYPE_LABELS) as PricingType[])
+  .map((value) => ({ label: PRICING_TYPE_LABELS[value], value }))
+
+export function pricingTypeLabel(value: string) {
+  return PRICING_TYPE_LABELS[value as PricingType] || value
+}
+
 export interface ProductPrice {
   id: number
   product_id: number

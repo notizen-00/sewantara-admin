@@ -6,6 +6,7 @@ import type {
   TenantSession,
 } from '~/domain/mitra'
 import { useAuthRepository } from '~/infrastructure/repositories/authRepository'
+import * as storage from '~/infrastructure/storage/localStorage'
 
 const storageKeys = {
   token: 'sewantara.access_token',
@@ -47,12 +48,10 @@ export const useAuthStore = defineStore('auth', () => {
   }))
 
   function persist() {
-    if (!process.client) return
-
-    if (accessToken.value) localStorage.setItem(storageKeys.token, accessToken.value)
-    if (tenantId.value) localStorage.setItem(storageKeys.tenant, tenantId.value)
-    if (branchId.value) localStorage.setItem(storageKeys.branch, branchId.value)
-    if (businessType.value) localStorage.setItem(storageKeys.businessType, businessType.value)
+    if (accessToken.value) storage.writeString(storageKeys.token, accessToken.value)
+    if (tenantId.value) storage.writeString(storageKeys.tenant, tenantId.value)
+    if (branchId.value) storage.writeString(storageKeys.branch, branchId.value)
+    if (businessType.value) storage.writeString(storageKeys.businessType, businessType.value)
   }
 
   function setTenantContext(nextTenantId: string, nextBranchId: string | number) {
@@ -70,16 +69,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearPersisted() {
-    if (!process.client) return
-    Object.values(storageKeys).forEach((key) => localStorage.removeItem(key))
+    Object.values(storageKeys).forEach(storage.remove)
   }
 
   function hydrateFromStorage() {
     if (!process.client) return
-    accessToken.value = localStorage.getItem(storageKeys.token) || ''
-    tenantId.value = localStorage.getItem(storageKeys.tenant) || ''
-    branchId.value = localStorage.getItem(storageKeys.branch) || '1'
-    businessType.value = localStorage.getItem(storageKeys.businessType) || ''
+    accessToken.value = storage.readString(storageKeys.token)
+    tenantId.value = storage.readString(storageKeys.tenant)
+    branchId.value = storage.readString(storageKeys.branch) || '1'
+    businessType.value = storage.readString(storageKeys.businessType)
   }
 
   function clearSession() {
@@ -145,6 +143,10 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  function googleLoginUrl(deviceName = 'nuxt-web') {
+    return useAuthRepository().googleRedirectUrl(deviceName)
   }
 
   function normalizeEmail(value: string) {
@@ -307,6 +309,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     loginWithGoogleCode,
+    googleLoginUrl,
     requestOtp,
     verifyOtp,
     isEmailOtpVerified,

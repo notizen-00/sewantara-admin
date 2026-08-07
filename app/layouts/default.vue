@@ -34,10 +34,15 @@ watch(
 
 const AUTH_PATHS = new Set(['/login', '/register'])
 
+function isWithin(base: string) {
+  return route.path === base || route.path.startsWith(`${base}/`)
+}
+
 /**
  * Single source of truth for "which route matches the current auth/tenant
  * state" — mirrors the state machine that used to live as v-if branches on
- * one page. Returns null when the current route is already correct.
+ * one page. Returns null when the current route is already correct, so that
+ * nested routes (/dashboard/products, /onboarding/rental) are left alone.
  */
 function resolveExpectedPath(): string | null {
   if (!dashboard.isInitialized) return null
@@ -47,14 +52,14 @@ function resolveExpectedPath(): string | null {
   }
 
   if (dashboard.requiresBillingRecovery) {
-    return route.path === '/billing/recover' ? null : '/billing/recover'
+    return isWithin('/billing/recover') ? null : '/billing/recover'
   }
 
   if (dashboard.auth.tenantStatus === 'onboarding') {
-    return route.path === '/onboarding' ? null : '/onboarding'
+    return isWithin('/onboarding') ? null : '/onboarding'
   }
 
-  return route.path === '/dashboard' ? null : '/dashboard'
+  return isWithin('/dashboard') ? null : '/dashboard'
 }
 
 const expectedPath = computed(resolveExpectedPath)

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Branch } from '~/domain/mitra'
 
-defineProps<{
+const props = defineProps<{
   tenantName: string
   tenantId: string
   activeWorkspaceName?: string
+  activeSection: string
   branches: Branch[]
   activeBranchId: string
   branchSwitching?: boolean
@@ -12,43 +13,36 @@ defineProps<{
   userEmail: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   logout: []
   selectBranch: [branchId: number]
+  selectSection: [section: string]
 }>()
 
+const preferences = usePreferencesStore()
 const sidebarOpen = ref(false)
-const sidebarCollapsed = ref(false)
-const activeSection = ref('overview')
 const bookingCreateRequest = ref(0)
-const sidebarVisuallyCollapsed = computed(() => sidebarCollapsed.value || activeSection.value === 'bookings')
-const useFullWidthContent = computed(() => activeSection.value === 'bookings')
+const sidebarVisuallyCollapsed = computed(() => preferences.sidebarCollapsed || props.activeSection === 'bookings')
+const useFullWidthContent = computed(() => props.activeSection === 'bookings')
 
 function selectSection(section: string) {
-  activeSection.value = section
+  emit('selectSection', section)
   sidebarOpen.value = false
 }
 
 function requestBookingCreate() {
-  activeSection.value = 'bookings'
+  selectSection('bookings')
   bookingCreateRequest.value += 1
 }
 
-function toggleSidebarCollapse() {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-}
+onMounted(preferences.hydrateFromStorage)
 
-onMounted(() => {
-  sidebarCollapsed.value = localStorage.getItem('sewantara.sidebar_collapsed') === 'true'
-})
-
-watch(sidebarCollapsed, (collapsed) => {
-  if (process.client) localStorage.setItem('sewantara.sidebar_collapsed', String(collapsed))
-})
-
-watch(activeSection, (section) => {
-  if (section !== 'bookings') bookingCreateRequest.value = 0
-})
+watch(
+  () => props.activeSection,
+  (section) => {
+    if (section !== 'bookings') bookingCreateRequest.value = 0
+  },
+)
 </script>
 
 <template>
@@ -61,7 +55,7 @@ watch(activeSection, (section) => {
       :active-workspace-name="activeWorkspaceName"
       :active-section="activeSection"
       @close="sidebarOpen = false"
-      @toggle-collapse="toggleSidebarCollapse"
+      @toggle-collapse="preferences.toggleSidebarCollapsed"
       @select="selectSection"
     />
     <OrganismsOperationsHeader

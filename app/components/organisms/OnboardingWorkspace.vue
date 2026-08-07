@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Banknote, Boxes, CheckCircle2, Layers3, PackagePlus, Plus, Tags, X } from '@lucide/vue'
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
+import { INVENTORY_TYPE_OPTIONS } from '~/domain/inventory'
+import { PRICING_TYPE_OPTIONS, pricingTypeLabel } from '~/domain/pricing'
 
 defineProps<{
   dashboard: MitraDashboardPresenter
@@ -230,23 +232,13 @@ const operatingDays = [
             <AtomsAppSelect
               v-model="dashboard.inventoryProductForm.inventory_type"
               label="Tipe inventory"
-              :options="[
-                { label: 'Serialized — setiap unit unik', value: 'serialized' },
-                { label: 'Quantity — berdasarkan jumlah stok', value: 'quantity' },
-              ]"
+              :options="INVENTORY_TYPE_OPTIONS"
               required
             />
             <AtomsAppSelect
               v-model="dashboard.inventoryProductForm.default_pricing_type"
               label="Model harga bawaan"
-              :options="[
-                { label: 'Per hari', value: 'daily' },
-                { label: 'Per jam', value: 'hourly' },
-                { label: 'Per minggu', value: 'weekly' },
-                { label: 'Per bulan', value: 'monthly' },
-                { label: 'Per acara', value: 'event' },
-                { label: 'Kustom', value: 'custom' },
-              ]"
+              :options="PRICING_TYPE_OPTIONS"
               required
             />
             <AtomsAppInput
@@ -412,7 +404,7 @@ const operatingDays = [
                     {{ price.product?.name || dashboard.products.products.find((product) => product.id === price.product_id)?.name || `Produk #${price.product_id}` }}
                   </p>
                   <p class="mt-1 text-xs capitalize text-neutral-500">
-                    {{ price.pricing_type === 'hourly' ? 'Per jam' : price.pricing_type === 'daily' ? 'Per hari' : price.pricing_type === 'event' ? 'Per sesi' : price.pricing_type }}
+                    {{ pricingTypeLabel(price.pricing_type) }}
                     · durasi {{ price.duration }}
                   </p>
                 </div>

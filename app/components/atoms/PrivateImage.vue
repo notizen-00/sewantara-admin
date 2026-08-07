@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ImageOff, LoaderCircle } from '@lucide/vue'
+import { usePrivateImage } from '~/application/media/usePrivateImage'
 
 const props = withDefaults(
   defineProps<{
@@ -13,39 +14,7 @@ const props = withDefaults(
   },
 )
 
-const objectUrl = ref('')
-const loading = ref(false)
-const failed = ref(false)
-let loadVersion = 0
-
-function revokeCurrentUrl() {
-  if (objectUrl.value) URL.revokeObjectURL(objectUrl.value)
-  objectUrl.value = ''
-}
-
-async function load() {
-  const version = ++loadVersion
-  revokeCurrentUrl()
-  failed.value = false
-  if (!props.url || !process.client) return
-
-  loading.value = true
-  try {
-    const blob = await useApiClient().tenantMedia(props.url)
-    if (version !== loadVersion) return
-    objectUrl.value = URL.createObjectURL(blob)
-  } catch {
-    if (version === loadVersion) failed.value = true
-  } finally {
-    if (version === loadVersion) loading.value = false
-  }
-}
-
-watch(() => props.url, load, { immediate: true })
-onBeforeUnmount(() => {
-  loadVersion += 1
-  revokeCurrentUrl()
-})
+const { objectUrl, loading, failed } = usePrivateImage(toRef(props, 'url'))
 </script>
 
 <template>

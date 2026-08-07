@@ -21,5 +21,10 @@ export const useOperationsStore = defineStore('operations', () => {
     }
   }
 
-  return { dashboard, loading, error, fetchDashboard }
+  function reset() {
+    dashboard.value = null
+    error.value = ''
+  }
+
+  return { dashboard, loading, error, fetchDashboard, reset }
 })

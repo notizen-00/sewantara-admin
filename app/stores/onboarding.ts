@@ -88,12 +88,18 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     return run(() => useOnboardingRepository().goLive())
   }
 
+  function reset() {
+    progress.value = null
+    error.value = ''
+  }
+
   return {
     progress,
     loading,
     error,
     checklistItems,
     completion,
+    reset,
     fetchProgress,
     saveBusiness,
     saveRental,

@@ -20,6 +20,8 @@ import {
 } from '@lucide/vue'
 import type { InventoryType, PricingType } from '~/domain/mitra'
 import { ENGINE_LABELS } from '~/domain/mitra'
+import { INVENTORY_TYPE_DESCRIPTIONS, INVENTORY_TYPE_LABELS, INVENTORY_TYPE_OPTIONS } from '~/domain/inventory'
+import { PRICING_TYPE_OPTIONS, pricingTypeLabel } from '~/domain/pricing'
 import { useProductPresenter } from '~/application/products/useProductPresenter'
 
 defineEmits<{
@@ -30,8 +32,10 @@ const products = useProductPresenter()
 
 const inventoryFilterOptions = [
   { label: 'Semua tipe inventory', value: '' as InventoryType | '' },
-  { label: 'Unit terpisah / serialized', value: 'serialized' as InventoryType | '' },
-  { label: 'Stok berdasarkan jumlah', value: 'quantity' as InventoryType | '' },
+  ...INVENTORY_TYPE_OPTIONS.map((option) => ({
+    label: INVENTORY_TYPE_DESCRIPTIONS[option.value],
+    value: option.value as InventoryType | '',
+  })),
 ]
 
 const statusFilterOptions = [
@@ -40,19 +44,8 @@ const statusFilterOptions = [
   { label: 'Nonaktif', value: false as boolean | '' },
 ]
 
-const inventoryOptions = [
-  { label: 'Unit terpisah / serialized', value: 'serialized' as InventoryType },
-  { label: 'Stok berdasarkan jumlah', value: 'quantity' as InventoryType },
-]
-
-const pricingOptions = [
-  { label: 'Per jam', value: 'hourly' as PricingType },
-  { label: 'Per hari', value: 'daily' as PricingType },
-  { label: 'Per minggu', value: 'weekly' as PricingType },
-  { label: 'Per bulan', value: 'monthly' as PricingType },
-  { label: 'Per event / sesi', value: 'event' as PricingType },
-  { label: 'Kustom', value: 'custom' as PricingType },
-]
+const inventoryOptions = INVENTORY_TYPE_OPTIONS
+const pricingOptions = PRICING_TYPE_OPTIONS
 
 const productCategoryFilterOptions = computed(() => [
   { label: 'Semua kategori', value: null as number | null },
@@ -67,11 +60,11 @@ function categoryName(categoryId: number) {
 }
 
 function inventoryLabel(type: InventoryType) {
-  return type === 'serialized' ? 'Serialized' : 'Quantity'
+  return INVENTORY_TYPE_LABELS[type] || type
 }
 
 function pricingLabel(type: PricingType) {
-  return pricingOptions.find((option) => option.value === type)?.label || type
+  return pricingTypeLabel(type)
 }
 
 onMounted(() => {

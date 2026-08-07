@@ -9,13 +9,11 @@ import {
   Sparkles,
 } from '@lucide/vue'
 import type { MitraDashboardPresenter } from '~/application/mitra/useMitraDashboard'
-import { resolveApiBaseUrl } from '~/composables/useApiClient'
 
 const props = defineProps<{
   dashboard: MitraDashboardPresenter
 }>()
 
-const config = useRuntimeConfig()
 const route = useRoute()
 const router = useRouter()
 
@@ -41,11 +39,7 @@ function selectAuthTab(tab: string) {
 
 function connectWithGoogle() {
   if (!process.client) return
-
-  const apiBaseUrl = resolveApiBaseUrl(config.public.apiBase)
-  const googleAuthUrl = new URL(`${apiBaseUrl}/central/auth/google/redirect`)
-  googleAuthUrl.searchParams.set('device_name', 'nuxt-web')
-  window.location.assign(googleAuthUrl.toString())
+  window.location.assign(props.dashboard.auth.googleLoginUrl())
 }
 </script>
 

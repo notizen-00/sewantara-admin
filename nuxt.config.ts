@@ -29,6 +29,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost',
+      tenantBaseDomain: process.env.NUXT_PUBLIC_TENANT_BASE_DOMAIN || 'sewantara.id',
     },
   },
 })
