@@ -9,7 +9,9 @@ import {
   CircleDollarSign,
   Clock3,
   CreditCard,
+  ExternalLink,
   FileImage,
+  Globe,
   Info,
   LoaderCircle,
   MapPin,
@@ -366,6 +368,57 @@ onMounted(() => {
             </div>
 
             <div class="grid gap-7 p-5 sm:p-6">
+              <section class="rounded-md border border-neutral-200 bg-neutral-50 p-4">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-start gap-3">
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-neutral-0 text-primary-700 shadow-card">
+                      <Globe :size="17" />
+                    </span>
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-semibold text-neutral-900">Status situs publik</h3>
+                      <p class="mt-1 text-xs leading-5 text-neutral-500">
+                        <template v-if="settings.tenantSite">
+                          Saat aktif, pelanggan dapat mengakses
+                          <strong class="font-semibold text-neutral-700">{{ settings.tenantSite.host }}</strong>.
+                        </template>
+                        <template v-else>
+                          Alamat situs tenant belum tersedia.
+                        </template>
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    :class="[
+                      'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold',
+                      settings.websiteEnabled ? 'bg-primary-50 text-primary-700' : 'bg-neutral-100 text-neutral-500',
+                    ]"
+                  >
+                    {{ settings.websiteEnabled ? 'Aktif' : 'Nonaktif' }}
+                  </span>
+                </div>
+
+                <div class="mt-4">
+                  <AtomsAppToggle
+                    :model-value="settings.websiteEnabled"
+                    label="Aktifkan situs"
+                    description="Nonaktifkan sementara untuk menyembunyikan situs dari publik tanpa menghapus konfigurasi branding."
+                    :disabled="settings.store.savingWebsiteStatus"
+                    @update:model-value="settings.toggleWebsiteStatus"
+                  />
+                </div>
+
+                <a
+                  v-if="settings.websiteEnabled && settings.tenantSite"
+                  :href="settings.tenantSite.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary-700 hover:text-primary-600"
+                >
+                  <ExternalLink :size="14" />
+                  Buka situs
+                </a>
+              </section>
+
               <section>
                 <h3 class="text-sm font-semibold text-neutral-900">Palet warna</h3>
                 <p class="mt-1 text-xs leading-5 text-neutral-500">

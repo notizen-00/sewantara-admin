@@ -18,6 +18,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const loading = ref(false)
   const savingSection = ref<EditableSettingsSection | null>(null)
   const savingImage = ref<SettingsImageType | null>(null)
+  const savingWebsiteStatus = ref(false)
   const error = ref('')
   const success = ref('')
 
@@ -149,11 +150,27 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
+  async function updateWebsiteStatus(isEnabled: boolean) {
+    savingWebsiteStatus.value = true
+    clearFeedback()
+    try {
+      const response = await useSettingsRepository().updateWebsiteStatus(isEnabled)
+      if (snapshot.value) snapshot.value.website_status = response.data
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Status situs gagal diperbarui.'
+      throw err
+    } finally {
+      savingWebsiteStatus.value = false
+    }
+  }
+
   function reset() {
     snapshot.value = null
     operationalSnapshot.value = null
     savingSection.value = null
     savingImage.value = null
+    savingWebsiteStatus.value = false
     clearFeedback()
   }
 
@@ -163,6 +180,7 @@ export const useSettingsStore = defineStore('settings', () => {
     loading,
     savingSection,
     savingImage,
+    savingWebsiteStatus,
     error,
     success,
     clearFeedback,
@@ -174,6 +192,7 @@ export const useSettingsStore = defineStore('settings', () => {
     updatePayments,
     uploadImage,
     deleteImage,
+    updateWebsiteStatus,
     reset,
   }
 })

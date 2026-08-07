@@ -11,6 +11,7 @@ import type {
   TenantSettingsUpdatePayload,
 } from '~/domain/settings'
 import { toPaymentsPayload } from '~/domain/settings'
+import { resolveTenantSite } from '~/domain/tenantSite'
 
 const editableSections: EditableSettingsSection[] = ['business', 'branding', 'rental', 'booking', 'payments']
 
@@ -102,6 +103,10 @@ export function useSettingsPresenter() {
   const isDirty = computed(() => dirtySections.value.some((section) => section === selectedSection.value))
   const isSaving = computed(() => store.savingSection === selectedSection.value)
   const canSave = computed(() => isEditable.value && isDirty.value && !store.loading && !store.savingSection)
+  const websiteEnabled = computed(() => store.snapshot?.website_status?.is_enabled ?? false)
+  const tenantSite = computed(() =>
+    resolveTenantSite(auth.session?.tenant, String(useRuntimeConfig().public.tenantBaseDomain || '')),
+  )
 
   function hydrateForms() {
     const snapshot = store.snapshot
@@ -330,6 +335,16 @@ export function useSettingsPresenter() {
     }
   }
 
+  async function toggleWebsiteStatus() {
+    const nextValue = !websiteEnabled.value
+    try {
+      await store.updateWebsiteStatus(nextValue)
+      snackbar.success(nextValue ? 'Situs tenant sekarang aktif dan dapat diakses publik.' : 'Situs tenant dinonaktifkan.')
+    } catch (err) {
+      snackbar.error(err instanceof Error ? err.message : store.error)
+    }
+  }
+
   watch(contextKey, (nextContext, previousContext) => {
     if (nextContext !== previousContext && initializedContext.value) {
       initialize(true).catch(() => undefined)
@@ -346,12 +361,15 @@ export function useSettingsPresenter() {
     isDirty,
     isSaving,
     canSave,
+    websiteEnabled,
+    tenantSite,
     initialize,
     selectSection,
     saveCurrent,
     resetCurrent,
     uploadImage,
     deleteImage,
+    toggleWebsiteStatus,
   })
 }
 

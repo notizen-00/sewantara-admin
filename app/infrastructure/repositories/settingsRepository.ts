@@ -7,6 +7,7 @@ import type {
   SettingsImageType,
   TenantSettings,
   TenantSettingsUpdatePayload,
+  TenantWebsiteStatus,
 } from '~/domain/settings'
 import { useApiClient } from '~/composables/useApiClient'
 
@@ -30,6 +31,11 @@ export function useSettingsRepository() {
     },
     deleteImage: (image: SettingsImageType) =>
       api.tenant<null>(`/settings/images/${image}`, { method: 'DELETE' }),
+    updateWebsiteStatus: (isEnabled: boolean) =>
+      api.tenant<TenantWebsiteStatus>('/settings/website-status', {
+        method: 'PATCH',
+        body: JSON.stringify({ is_enabled: isEnabled }),
+      }),
     updateBooking: (payload: BookingOnboardingPayload) =>
       api.tenant<OnboardingProgress>('/onboarding/booking', {
         method: 'PATCH',

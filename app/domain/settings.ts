@@ -49,11 +49,16 @@ export interface TenantRentalEngineSettings {
   enable_waiting_list?: boolean
 }
 
+export interface TenantWebsiteStatus {
+  is_enabled: boolean
+}
+
 export interface TenantSettings {
   regular: TenantRegularSettings
   branding: TenantBrandingSettings
   branch: TenantBranchSettings
   rental_engine: TenantRentalEngineSettings
+  website_status?: TenantWebsiteStatus
 }
 
 export interface TenantSettingsUpdatePayload {
